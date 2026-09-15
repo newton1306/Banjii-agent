@@ -20,6 +20,19 @@ Agent ถูกกำหนดให้ตอบกลับในโครง�
 
 ---
 
+## 🧹 การล้างข้อมูลทดสอบและคืนค่ายอดเงินจริง (Data Cleanup & Balance Restoration)
+
+ได้ทำการลบรายการทดสอบที่รันตอน Build Test ออกอย่างเจาะจงและปลอดภัย:
+- ลบ Transaction ID 126–134 ออกจากฐานข้อมูล
+- ลบ Split Bill ID 17 และ Split Bill Members ID 36–38
+- คำนวณและปรับยอดเงินคงเหลือใน `app_settings.accounts` ให้กลับมาตรงตามประวัติธุรกรรมจริง 100%:
+  - **KTB SME:** `1,568.00 บาท`
+  - **KBANK:** `301.23 บาท`
+  - **KMUTT Student (BBL):** `500.00 บาท`
+  *(ยอดเงินรวม 3 บัญชี: `2,369.23 บาท` | ยอดหนี้เพื่อนค้าง: `Ikkiw 270.00 บาท`)*
+
+---
+
 ## 🛡️ การจัดการความปลอดภัยและ Edge Cases (สมบูรณ์ 100%)
 
 | ข้อกำหนด | ผลการตรวจสอบ |
@@ -32,23 +45,3 @@ Agent ถูกกำหนดให้ตอบกลับในโครง�
 | **อัพเดตยอดคงเหลือในบัญชี** | ทุกธุรกรรมจะคำนวณและอัพเดต `app_settings.accounts` ทันที (Expense -, Income +, Transfer ต้นทาง- ปลายทาง+) |
 | **Debt Settlement** | เมื่อเพื่อนโอนคืน ระบบตัดหนี้ใน `split_bill_members` (ปรับ `paid_amount`, `is_paid = true`), บันทึก Transaction Income `[debt_repayment]`, และเพิ่มเงินเข้าบัญชี |
 | **3 Strict Banks & GMT+7** | จำกัดเฉพาะ `ktb` (KTB SME), `kbank` (KBANK), `bbl` (KMUTT Student) และใช้วันที่ Asia/Bangkok `YYYY-MM-DD` เสมอ |
-
----
-
-## 🧪 ผลการทดสอบคำสั่งจริง (Test Results)
-
-1. **"ตอนนี้เหลือเงินแต่ละบัญชีเท่าไหร่ และใครติดเงินเราบ้าง"**
-   - ดึงยอดเงิน 3 บัญชีและรายการหนี้เพื่อนจาก Supabase Real-time พร้อมแสดงผลเป็นการ์ด `FinancialSummaryCard`
-2. **"กินข้าวแกงกะหรี่ 180 จ่าย kbank"**
-   - บันทึกรายจ่าย 180 บาท, หักบัญชี KBANK, แสดง `ExpenseCard`
-3. **"จ่ายค่าคอร์ทแบด 995 ktb หารกับ Nine, Praew, Non คนละเท่าๆ กัน ส่วนเรา 70"**
-   - สร้างเพื่อนใหม่ `Nine`, `Praew`, `Non` ลง `app_settings.friends`
-   - บันทึก Transaction รายจ่าย (ได้รับ BigInt ID)
-   - บันทึก `split_bills` และ `split_bill_members` คนละ 308.33 บาท
-   - หักเงิน KTB 995 บาท, แสดง `SplitBillCard`
-4. **"โอนเงินจาก ktb ไป kbank 500"**
-   - บันทึก `transfer_out` และ `transfer_in` คู่กันพร้อม tag `[transfer_pair:...]`
-   - KTB ลด 500, KBANK เพิ่ม 500, แสดง `TransferCard`
-5. **"Non โอนคืน 150 เข้า kbank"**
-   - ตัดหนี้ของ Non ใน `split_bill_members`, เพิ่มเงินเข้า KBANK 150 บาท
-   - บันทึก `Auto Debt Settlement (Non)`, ยิง Confetti, แสดง `RepaymentCard`
