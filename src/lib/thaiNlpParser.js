@@ -47,7 +47,18 @@ export class ThaiNlpParser {
       return await executeAgentTool('get_financial_summary', {});
     }
 
-    // 2. Recent Transactions: "ประวัติ", "รายการล่าสุด", "ธุรกรรมล่าสุด"
+    // 2. Delete / Revert Recent Transaction Intent: "ลบรายการล่าสุด", "ยกเลิกรายการล่าสุด", "ลบอันล่าสุด", "ลบรายการล่าสุด 1 อัน"
+    if (
+      (lower.includes('ลบ') || lower.includes('ยกเลิก') || lower.includes('delete') || lower.includes('revert')) &&
+      (lower.includes('ล่าสุด') || lower.includes('รายการ') || lower.includes('อัน'))
+    ) {
+      const countMatch = trimmed.match(/(?:ลบ|ยกเลิก|delete)\s*(?:รายการล่าสุด|อันล่าสุด|รายการ|อัน)?\s*(\d+)/i) ||
+                         trimmed.match(/(\d+)\s*(?:รายการ|อัน)\s*(?:ล่าสุด)?/i);
+      const count = countMatch ? parseInt(countMatch[1], 10) : 1;
+      return await executeAgentTool('delete_recent_transaction', { count });
+    }
+
+    // 3. Recent Transactions: "ประวัติ", "รายการล่าสุด", "ธุรกรรมล่าสุด"
     if (
       lower.includes('รายการล่าสุด') ||
       lower.includes('ประวัติ') ||

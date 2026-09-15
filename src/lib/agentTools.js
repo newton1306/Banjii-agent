@@ -101,6 +101,16 @@ export const GEMINI_TOOLS_DECLARATION = [
         limit: { type: 'NUMBER', description: 'จำนวนรายการที่ต้องการดู (ปกติ 5-10 รายการ)' }
       }
     }
+  },
+  {
+    name: 'delete_recent_transaction',
+    description: 'ลบรายการธุรกรรมล่าสุดออกจากระบบ Banjii (ตาราง transactions) พร้อมคืนค่ายอดเงินคงเหลือในบัญชีธนาคารให้ถูกต้องทันที ใช้เมื่อผู้ใช้สั่ง เช่น "ลบรายการล่าสุด", "ลบรายการล่าสุด 1 รายการ", "ยกเลิกรายการล่าสุด", "ลบ 1 รายการ"',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        count: { type: 'NUMBER', description: 'จำนวนรายการล่าสุดที่ต้องการลบ (ปกติคือ 1 หากไม่ระบุให้เป็น 1)' }
+      }
+    }
   }
 ];
 
@@ -322,6 +332,53 @@ export async function executeAgentTool(toolName, args) {
 
         return {
           tool: 'get_recent_transactions',
+          success: true,
+          data: res,
+          formattedReply,
+        };
+      }
+
+      case 'delete_recent_transaction': {
+        const count = Math.max(1, parseInt(args.count || 1, 10));
+        const res = await DatabaseService.deleteRecentTransaction(count);
+
+        if (!res.deletedTransactions || res.deletedTransactions.length === 0) {
+          return {
+            tool: 'delete_recent_transaction',
+            success: true,
+            data: res,
+            formattedReply: formatStandardResponse({
+              statusTitle: 'ไม่พบรายการธุรกรรมที่ต้องการลบ',
+              details: ['ไม่มีรายการธุรกรรมในระบบ หรือรายการถูกลบไปแล้ว'],
+              tipOrBalance: 'ระบบฐานข้อมูลไม่มีรายการล่าสุดให้ลบ'
+            })
+          };
+        }
+
+        const lines = res.deletedTransactions.map((tx) => {
+          const acc = STRICT_ACCOUNTS.find((a) => a.id === tx.account_id);
+          const sign = tx.type === 'expense' || tx.type === 'transfer_out' ? '-' : '+';
+          return `ลบรายการ: **${tx.title}** (${sign}฿${formatCurrency(tx.amount)}) จากบัญชี **${acc?.name || tx.account_id}**`;
+        });
+
+        const affectedAccountIds = [...new Set(res.deletedTransactions.map((t) => t.account_id))];
+        const balanceInfos = affectedAccountIds.map((accId) => {
+          const acc = res.updatedAccounts?.find((a) => a.id === accId);
+          const strictAcc = STRICT_ACCOUNTS.find((a) => a.id === accId);
+          return `${acc?.name || strictAcc?.name || accId}: **฿${formatCurrency(acc?.balance || 0)}**`;
+        }).join(' | ');
+
+        const formattedReply = formatStandardResponse({
+          statusTitle: `ลบรายการล่าสุดสำเร็จ (${res.deletedTransactions.length} รายการ)`,
+          details: [
+            ...lines,
+            `การปรับปรุงยอด: คืนค่ายอดเงินเข้าบัญชีเรียบร้อย`
+          ],
+          tipOrBalance: balanceInfos ? `ยอดคงเหลือล่าสุด: ${balanceInfos}` : `ลบรายการออกจากระบบเรียบร้อย`
+        });
+
+        return {
+          tool: 'delete_recent_transaction',
           success: true,
           data: res,
           formattedReply,

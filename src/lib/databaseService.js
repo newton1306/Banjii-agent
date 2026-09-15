@@ -425,4 +425,123 @@ export class DatabaseService {
 
     return data || [];
   }
+
+  /**
+   * Delete Recent Transaction(s) and safely revert account balance(s).
+   * Supports single transactions, transfer pairs, and split bills.
+   */
+  static async deleteRecentTransaction(count = 1) {
+    const numToDelete = Math.max(1, parseInt(count || 1, 10));
+
+    // Fetch the latest transaction(s) by created_at and id
+    const { data: recentTxs, error: fetchErr } = await supabase
+      .from('transactions')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(numToDelete);
+
+    if (fetchErr) {
+      throw new Error(`Failed to fetch recent transactions to delete: ${fetchErr.message}`);
+    }
+
+    if (!recentTxs || recentTxs.length === 0) {
+      return {
+        deletedTransactions: [],
+        updatedAccounts: await this.getAccounts(),
+      };
+    }
+
+    // Collect all transactions to delete, including transfer partners if applicable
+    const allToDelete = [...recentTxs];
+
+    for (const tx of recentTxs) {
+      // 1. Check explicit transfer_pair tag
+      const pairMatch = tx.note?.match(/\[transfer_pair:([^\]]+)\]/);
+      if (pairMatch && pairMatch[1]) {
+        const pairId = pairMatch[1];
+        const { data: partners } = await supabase
+          .from('transactions')
+          .select('*')
+          .neq('id', tx.id)
+          .like('note', `%[transfer_pair:${pairId}]%`);
+
+        if (partners && partners.length > 0) {
+          for (const p of partners) {
+            if (!allToDelete.some((t) => t.id === p.id)) {
+              allToDelete.push(p);
+            }
+          }
+        }
+      } else if ((tx.type === 'transfer_out' || tx.type === 'transfer_in') && !tx.note?.includes('[transfer_pair:')) {
+        // 2. Heuristic fallback for legacy transfer pairs
+        const oppositeType = tx.type === 'transfer_out' ? 'transfer_in' : 'transfer_out';
+        const { data: candidates } = await supabase
+          .from('transactions')
+          .select('*')
+          .neq('id', tx.id)
+          .eq('type', oppositeType)
+          .eq('amount', tx.amount)
+          .neq('account_id', tx.account_id)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (candidates && candidates.length > 0) {
+          const p = candidates[0];
+          if (!allToDelete.some((t) => t.id === p.id)) {
+            allToDelete.push(p);
+          }
+        }
+      }
+    }
+
+    // Calculate account balance reversals
+    const deltas = {};
+    for (const tx of allToDelete) {
+      const amt = round2(tx.amount);
+      if (tx.type === 'expense' || tx.type === 'transfer_out') {
+        // Revert deduction: add money back to the account
+        deltas[tx.account_id] = round2((deltas[tx.account_id] || 0) + amt);
+      } else if (tx.type === 'income' || tx.type === 'transfer_in') {
+        // Revert addition: subtract money from the account
+        deltas[tx.account_id] = round2((deltas[tx.account_id] || 0) - amt);
+      }
+    }
+
+    const idsToDelete = allToDelete.map((t) => t.id);
+
+    // Clean up any linked split bills
+    try {
+      const { data: linkedBills } = await supabase
+        .from('split_bills')
+        .select('id')
+        .in('linked_transaction_id', idsToDelete);
+
+      if (linkedBills && linkedBills.length > 0) {
+        const billIds = linkedBills.map((b) => b.id);
+        await supabase.from('split_bill_members').delete().in('bill_id', billIds);
+        await supabase.from('split_bills').delete().in('id', billIds);
+      }
+    } catch (err) {
+      console.warn('Error cleaning up linked split bills:', err);
+    }
+
+    // Delete transactions
+    const { error: delErr } = await supabase
+      .from('transactions')
+      .delete()
+      .in('id', idsToDelete);
+
+    if (delErr) {
+      throw new Error(`Failed to delete transaction(s): ${delErr.message}`);
+    }
+
+    // Safely update bank account balances in app_settings (preserving card masks)
+    const updatedAccounts = await this.updateAccountBalances(deltas);
+
+    return {
+      deletedTransactions: allToDelete,
+      updatedAccounts,
+    };
+  }
 }

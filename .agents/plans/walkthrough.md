@@ -1,33 +1,67 @@
-# Walkthrough - Mobile Keyboard Smoothness & Chat Input UX Overhaul
+# Walkthrough - เพิ่มฟังก์ชันลบรายการล่าสุดและคืนค่ายอดเงินคงเหลือ (Delete Recent Transaction)
 
-## 1. Root Cause of Keyboard "Jumping/Bouncing" ("แป้นพิมพ์เด้ง")
-1. **iOS Safari Auto-Zoom on Input Focus:**
-   - **Cause:** When an input element on iOS Safari/WebKit has a font-size smaller than 16px (previously `text-xs sm:text-sm` = 12px/14px), iOS forces an automatic viewport zoom-in to 16px, abruptly scaling the entire page up, causing horizontal scroll, and pushing the header off-screen.
-   - **Fix:** Upgraded the input text size to `text-[16px] sm:text-sm`. With 16px font-size, iOS Safari **never triggers auto-zoom**, completely eliminating the jarring bounce.
-2. **Fixed Viewport & Virtual Keyboard Height:**
-   - **Cause:** Mobile browsers' `100dvh` does not contract when the virtual keyboard pops up on some iOS/Android devices, causing the page body to scroll and bounce.
-   - **Fix:**
-     - Added `interactive-widget=resizes-content` to the `viewport` meta tag in `index.html`.
-     - Integrated `window.visualViewport` listener in `App.jsx` to dynamically track the exact visible height above the on-screen keyboard, binding the root container to `style={{ height: viewportHeight }}` with `fixed inset-0`.
-     - Added `overscroll-behavior: none; touch-action: manipulation;` in `index.css` to prevent body rubber-banding.
-3. **Smooth Scroll to Bottom on Viewport Change:**
-   - Added a `visualViewport` resize listener in `ChatContainer.jsx` that automatically and smoothly scrolls the chat thread so the latest messages remain perfectly in view above the keyboard.
+## 1. สาเหตุของปัญหาเดิม (Root Cause)
+1. **ไม่มีฟังก์ชัน/Tool สำหรับลบรายการใน Gemini Tools Declaration:**
+   - ใน `agentTools.js` มีเพียง `add_transaction`, `create_split_bill`, `record_transfer`, `settle_friend_debt`, `get_financial_summary`, และ `get_recent_transactions`
+   - เมื่อผู้ใช้พิมพ์คำสั่ง *"ผมสั่งในแชทให้ลบรายการล่าสุด 1 อัน"* ระบบไม่พบ Intent ในการลบ จึงตกไปเข้า `get_recent_transactions` แทน ทำให้แสดงเฉพาะรายการล่าสุดแต่ไม่ยอมลบออกจริง
+2. **Thai NLP Fallback Parser ไม่ดักจับ Intent "ลบ/ยกเลิก":**
+   - ใน `thaiNlpParser.js` มีการตรวจจับ `lower.includes('รายการล่าสุด')` ก่อน ส่งผลให้คำว่า "ลบรายการล่าสุด" ถูกเข้าใจผิดเป็นขอดูประวัติล่าสุดทันที
 
 ---
 
-## 2. Chat Input & UI Modernization
-- **Cohesive Floating Input Bar:**
-  - Redesigned `ChatInput.jsx` into a unified, modern pill layout with `rounded-2xl`, glassmorphic backdrop (`bg-[#161626]/90 backdrop-blur-xl`), and dark inner shadow.
-  - Focused state features a smooth glow ring (`focus-within:border-neon-lime/60 focus-within:ring-2 focus-within:ring-neon-lime/20`).
-- **Interactive Action Buttons:**
-  - **Voice Button:** Rounded-2xl button with smooth audio recording pulse state.
-  - **Send Button:** Dynamic contrast (subtle when empty, bright neon-lime with drop-shadow when text is present).
-- **Refined Quick Prompt Chips:**
-  - Rounded-full pill chips with subtle glowing borders (`QuickPromptChips.jsx`) floating seamlessly above the input.
+## 2. การแก้ไขที่ดำเนินการ (Implementation Details)
+
+### ก. เพิ่มเมธอด `DatabaseService.deleteRecentTransaction(count = 1)` (`src/lib/databaseService.js`)
+- ดึงรายการธุรกรรมล่าสุดตามเวลาที่บันทึก (`created_at DESC`, `id DESC`) ตามจำนวน `count` ที่ระบุ
+- **ตรวจจับคู่โอน (Transfer Pair) อัตโนมัติ:**
+  - หากรายการที่จะลบมี Tag `[transfer_pair:xxx]` หรือเป็นรายการโอนข้ามบัญชี (`transfer_out`/`transfer_in`) ระบบจะค้นหารายการคู่ของมันและทำการลบทั้งคู่พร้อมกัน
+- **ตรวจจับบิลหาร (Split Bills):**
+  - หากรายการเชื่อมโยงกับบิลหารใน `split_bills` ระบบจะลบสมาชิกใน `split_bill_members` และบิลใน `split_bills` ให้โดยอัตโนมัติ
+- **คำนวณย้อนยอดเงินคงเหลือ (Account Balance Reversal):**
+  - ลบรายการ `expense` (รายจ่าย) / `transfer_out` $\rightarrow$ นำเงินกลับเข้าบัญชี (`+amount`)
+  - ลบรายการ `income` (รายรับ) / `transfer_in` $\rightarrow$ หักเงินออกจากบัญชี (`-amount`)
+  - คืนยอดเงินผ่าน `DatabaseService.updateAccountBalances` ซึ่งรับประกันว่า **จะไม่ไปแตะต้อง Card Mask เช่น `•••• 5505` หรือข้อมูลบัตรอื่นๆ โดยเด็ดขาด**
+- ลบรายการออกจากตาราง `transactions` ใน Supabase จริง
+
+### ข. อัปเดต Gemini Tools Declaration & Execution (`src/lib/agentTools.js`)
+- เพิ่มเครื่องมือ `delete_recent_transaction`:
+  ```json
+  {
+    "name": "delete_recent_transaction",
+    "description": "ลบรายการธุรกรรมล่าสุดออกจากระบบ Banjii (ตาราง transactions) พร้อมคืนค่ายอดเงินคงเหลือในบัญชีธนาคารให้ถูกต้องทันที...",
+    "parameters": {
+      "count": { "type": "NUMBER", "description": "จำนวนรายการล่าสุดที่ต้องการลบ (ปกติคือ 1)" }
+    }
+  }
+  ```
+- เพิ่มการทำงานใน `executeAgentTool` คืนค่าผลลัพธ์รูปแบบมาตรฐาน (🎯, 📊, 💡) แสดงรายการที่ลบ พร้อมยอดคงเหลือล่าสุดของบัญชีที่ได้รับผลกระทบ
+
+### ค. ปรับปรุง System Instruction ของ Gemini (`src/lib/geminiClient.js`)
+- เพิ่มแนวทางสำหรับโมเดล:
+  `- delete_recent_transaction: เมื่อผู้ใช้สั่งลบรายการล่าสุด, ยกเลิกรายการล่าสุด, หรือลบธุรกรรมที่เพิ่งบันทึกไป`
+
+### ง. ปรับปรุง Thai NLP Parser (`src/lib/thaiNlpParser.js`)
+- เพิ่ม Intent ดักคำว่า `ลบ`, `ยกเลิก`, `delete` ผสมกับ `ล่าสุด`, `รายการ`, `อัน`
+- ดึงจำนวนรายการที่ต้องการลบจากข้อความผู้ใช้ เช่น "ลบรายการล่าสุด 1 อัน" $\rightarrow$ `count: 1`
+- จัดลำดับให้ตรวจสอบ Intent ลบรายการ **ก่อน** Intent ดูประวัติรายการล่าสุด
 
 ---
 
-## 3. Verification & Deployment
-- ✅ **Build:** `npm run build` compiled without any warnings or errors.
-- ✅ **Netlify Production Deployment:** Deployed live to [https://banjii-agent.netlify.app](https://banjii-agent.netlify.app) (Deploy ID: `6aa8ec53e03dbfcd3f3d834a`).
-- ✅ **Version Control:** Committed and pushed all changes cleanly to GitHub master.
+## 3. ผลการทดสอบและการทำงานจริง (Verification)
+
+1. **ทดสอบลบรายการ "กินข้าว" (-฿20,000.00) ของบัญชี KBANK:**
+   - รายการ ID `140` ถูกลบออกจากตาราง `transactions` อย่างสมบูรณ์
+   - ยอดเงินบัญชี **KBANK** ได้รับการปรับปรุงคืนจาก `-฿19,462.77` กลับมาเป็น **`฿537.23`** อย่างถูกต้อง
+   - ข้อมูลบัตรและ Mask `•••• 5505` ของ KTB SME คงเดิม 100% ไม่ได้รับผลกระทบ
+2. **ทดสอบ Build:**
+   - คำสั่ง `npm run build` ผ่านสมบูรณ์ (2103 modules transformed, 0 error)
+3. **ผลตอบกลับของระบบ (Response Format):**
+   ```
+   🎯 ลบรายการล่าสุดสำเร็จ (1 รายการ)
+
+   📊 รายละเอียด:
+   • ลบรายการ: กินข้าว (-฿20,000.00) จากบัญชี KBANK
+   • การปรับปรุงยอด: คืนค่ายอดเงินเข้าบัญชีเรียบร้อย
+
+   💡 ข้อมูลอัพเดต: ยอดคงเหลือล่าสุด: KBANK: ฿537.23
+   ```
