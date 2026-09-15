@@ -142,6 +142,7 @@ export async function executeAgentTool(toolName, args) {
 
         const acc = STRICT_ACCOUNTS.find((a) => a.id === res.transaction.account_id);
         const cat = CATEGORY_MAP[res.transaction.category]?.name || res.transaction.category;
+        const remainingAcc = res.updatedAccounts?.find((a) => a.id === res.transaction.account_id);
 
         const formattedReply = formatStandardResponse({
           statusTitle: `บันทึกรายการ${res.transaction.type === 'expense' ? 'รายจ่าย' : 'รายรับ'}สำเร็จ`,
@@ -153,7 +154,9 @@ export async function executeAgentTool(toolName, args) {
             `วันที่: **${formatThaiDatePretty(res.transaction.date)}**`,
             ...(args.target_portion === 0 ? ['งบรายวัน: ยกเว้นรายการนี้ (Target Portion: 0)'] : [])
           ],
-          tipOrBalance: `บันทึกรายการลงตาราง transactions เรียบร้อย (ประเภท: ${res.transaction.type === 'expense' ? 'รายจ่าย' : 'รายรับ'})`
+          tipOrBalance: remainingAcc
+            ? `ยอดเงินคงเหลือใน ${acc?.name || 'บัญชี'}: **฿${formatCurrency(remainingAcc.balance)}**`
+            : `บันทึกรายการลงตาราง transactions เรียบร้อย`
         });
 
         return {
@@ -175,6 +178,7 @@ export async function executeAgentTool(toolName, args) {
         });
 
         const acc = STRICT_ACCOUNTS.find((a) => a.id === args.account_id);
+        const payingAcc = res.updatedAccounts?.find((a) => a.id === args.account_id);
         const memberBreakdown = (res.members || []).map(
           (m) => `${m.name} รับผิดชอบ ฿${formatCurrency(m.amount)}`
         ).join(', ');
@@ -188,7 +192,9 @@ export async function executeAgentTool(toolName, args) {
             `ยอดเพื่อนหาร: **${memberBreakdown}**`,
             `วันที่: **${formatThaiDatePretty(res.bill.date)}**`
           ],
-          tipOrBalance: `บันทึกรายการลงตาราง transactions เรียบร้อย พร้อมบันทึกส่วนของคุณ [split_share:${args.my_share}] ในโน้ต`
+          tipOrBalance: payingAcc
+            ? `ตัดเงินสำรองจาก ${acc?.name} แล้ว คงเหลือ: **฿${formatCurrency(payingAcc.balance)}**`
+            : `บันทึกรายการลงตาราง transactions เรียบร้อย`
         });
 
         return {
@@ -209,6 +215,8 @@ export async function executeAgentTool(toolName, args) {
 
         const sAcc = STRICT_ACCOUNTS.find((a) => a.id === args.source_account);
         const dAcc = STRICT_ACCOUNTS.find((a) => a.id === args.dest_account);
+        const sBal = res.updatedAccounts?.find((a) => a.id === args.source_account)?.balance;
+        const dBal = res.updatedAccounts?.find((a) => a.id === args.dest_account)?.balance;
 
         const formattedReply = formatStandardResponse({
           statusTitle: `โอนเงินระหว่างบัญชีสำเร็จ`,
@@ -218,7 +226,9 @@ export async function executeAgentTool(toolName, args) {
             `ยอดเงินที่โอน: **฿${formatCurrency(args.amount)}**`,
             `วันที่: **${formatThaiDatePretty(res.sourceTx.date)}**`
           ],
-          tipOrBalance: `บันทึกคู่รายการโอนออกและโอนเข้าลงตาราง transactions เรียบร้อย`
+          tipOrBalance: sBal !== undefined && dBal !== undefined
+            ? `${sAcc?.name} คงเหลือ: **฿${formatCurrency(sBal)}** | ${dAcc?.name} คงเหลือ: **฿${formatCurrency(dBal)}**`
+            : `บันทึกคู่รายการโอนออกและโอนเข้าเรียบร้อย`
         });
 
         return {
@@ -238,6 +248,7 @@ export async function executeAgentTool(toolName, args) {
         });
 
         const dAcc = STRICT_ACCOUNTS.find((a) => a.id === res.depositAccount);
+        const dBal = res.updatedAccounts?.find((a) => a.id === res.depositAccount)?.balance;
 
         const formattedReply = formatStandardResponse({
           statusTitle: `บันทึกการรับเงินคืนสำเร็จ`,
@@ -247,7 +258,9 @@ export async function executeAgentTool(toolName, args) {
             `เข้าบัญชี: **${dAcc?.name || res.depositAccount}**`,
             `บันทึกรายการ: **Auto Debt Settlement (${res.friendName})**`
           ],
-          tipOrBalance: `บันทึกรายการรับเงินคืนลงตาราง transactions เรียบร้อย (แท็ก [debt_repayment])`
+          tipOrBalance: dBal !== undefined
+            ? `ยอดเงินในบัญชี ${dAcc?.name} เพิ่มเป็น: **฿${formatCurrency(dBal)}**`
+            : `บันทึกรายการรับเงินคืนเรียบร้อย`
         });
 
         return {

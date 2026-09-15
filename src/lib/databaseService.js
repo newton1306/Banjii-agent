@@ -36,7 +36,37 @@ export class DatabaseService {
   }
 
   /**
-   * Add Transaction (Writes ONLY to transactions table).
+   * Update Account Balances in app_settings.
+   * SAFEGUARD: Strictly modifies ONLY the `balance` field.
+   * Preserves user customized card masks (e.g. '•••• 5505'), names, and styles completely.
+   */
+  static async updateAccountBalances(deltas = {}) {
+    try {
+      const current = await this.getAccounts();
+      const updated = current.map((acc) => {
+        const delta = Number(deltas[acc.id] || 0);
+        if (delta === 0) return acc;
+        return {
+          ...acc,
+          balance: round2(Number(acc.balance || 0) + delta),
+        };
+      });
+
+      await supabase.from('app_settings').upsert({
+        key: 'accounts',
+        value: updated,
+        updated_at: new Date().toISOString(),
+      });
+
+      return updated;
+    } catch (err) {
+      console.error('Error updating account balances:', err);
+      return await this.getAccounts();
+    }
+  }
+
+  /**
+   * Add Transaction (Inserts into transactions and updates bank balance).
    */
   static async addTransaction({
     title,
@@ -77,8 +107,13 @@ export class DatabaseService {
       throw new Error(`Failed to insert transaction: ${txError.message}`);
     }
 
+    // Deduct balance for expense, add for income
+    const delta = type === 'expense' ? -numAmount : numAmount;
+    const updatedAccounts = await this.updateAccountBalances({ [account_id]: delta });
+
     return {
       transaction: inserted,
+      updatedAccounts,
     };
   }
 
@@ -122,6 +157,9 @@ export class DatabaseService {
       throw new Error(`Failed to insert split bill transaction: ${txError.message}`);
     }
 
+    // Deduct total bill amount from paying account balance
+    const updatedAccounts = await this.updateAccountBalances({ [account_id]: -totalAmount });
+
     return {
       transaction: insertedTx,
       bill: {
@@ -130,12 +168,13 @@ export class DatabaseService {
         date: txDate,
       },
       members,
+      updatedAccounts,
     };
   }
 
   /**
-   * Record Inter-Account Transfer (Writes ONLY to transactions table).
-   * Inserts transfer_out and transfer_in pair into transactions table only.
+   * Record Inter-Account Transfer.
+   * Inserts transfer_out and transfer_in pair into transactions table and shifts balance.
    */
   static async recordTransfer({
     source_account,
@@ -184,16 +223,23 @@ export class DatabaseService {
       throw new Error(`Failed to record transfer pair: ${resOut.error?.message || resIn.error?.message}`);
     }
 
+    // Source decreases, dest increases
+    const updatedAccounts = await this.updateAccountBalances({
+      [source_account]: -numAmount,
+      [dest_account]: numAmount,
+    });
+
     return {
       sourceTx: resOut.data,
       destTx: resIn.data,
       pairId,
+      updatedAccounts,
     };
   }
 
   /**
-   * Settle Friend Debt (Writes ONLY to transactions table).
-   * Inserts income transaction with [debt_repayment] tag.
+   * Settle Friend Debt.
+   * Inserts income transaction with [debt_repayment] tag and adds balance to account.
    */
   static async settleFriendDebt({
     friend_name,
@@ -227,11 +273,17 @@ export class DatabaseService {
       throw new Error(`Failed to insert repayment transaction: ${txErr.message}`);
     }
 
+    // Add repayment amount to deposit account
+    const updatedAccounts = await this.updateAccountBalances({
+      [deposit_account]: repaymentAmount,
+    });
+
     return {
       transaction: insertedTx,
       friendName: cleanName,
       amountSettled: repaymentAmount,
       depositAccount,
+      updatedAccounts,
     };
   }
 

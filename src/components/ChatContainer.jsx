@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { ExpenseCard } from './cards/ExpenseCard';
 import { SplitBillCard } from './cards/SplitBillCard';
 import { TransferCard } from './cards/TransferCard';
@@ -89,13 +90,56 @@ export const ChatContainer = ({ messages = [], isLoading = false, updatedAccount
             {/* Content Bubble */}
             <div className={`max-w-[85%] sm:max-w-[75%]`}>
               <div
-                className={`p-3.5 rounded-2xl text-xs sm:text-sm leading-relaxed whitespace-pre-line shadow-sm ${
+                className={`p-3.5 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-sm ${
                   isUser
-                    ? 'bg-gradient-to-r from-electric-violet to-[#4b3ee8] text-white rounded-tr-none'
+                    ? 'bg-gradient-to-r from-electric-violet to-[#4b3ee8] text-white rounded-tr-none whitespace-pre-line'
                     : 'bg-[#181826] border border-white/10 text-slate-200 rounded-tl-none'
                 }`}
               >
-                {msg.text}
+                {isUser ? (
+                  msg.text
+                ) : (
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => (
+                        <p className="whitespace-pre-line mb-2 last:mb-0 leading-relaxed">
+                          {children}
+                        </p>
+                      ),
+                      strong: ({ children }) => (
+                        <strong className="font-semibold text-white">{children}</strong>
+                      ),
+                      ul: ({ children }) => (
+                        <ul className="list-disc pl-5 space-y-1 my-2 text-slate-200">
+                          {children}
+                        </ul>
+                      ),
+                      ol: ({ children }) => (
+                        <ol className="list-decimal pl-5 space-y-1 my-2 text-slate-200">
+                          {children}
+                        </ol>
+                      ),
+                      li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                      a: ({ href, children }) => (
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-neon-lime hover:underline font-medium"
+                        >
+                          {children}
+                        </a>
+                      ),
+                      code: ({ children }) => (
+                        <code className="bg-white/10 text-neon-lime px-1.5 py-0.5 rounded text-[11px] font-mono">
+                          {children}
+                        </code>
+                      ),
+                    }}
+                  >
+                    {msg.text}
+                  </ReactMarkdown>
+                )}
               </div>
 
               {/* Render Rich Transaction Card if Agent triggered a tool */}
