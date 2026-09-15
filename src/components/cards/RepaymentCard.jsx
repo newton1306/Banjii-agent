@@ -72,7 +72,9 @@ export const RepaymentCard = ({ data }) => {
       <div className="flex items-center justify-between pt-2.5 text-xs text-slate-400">
         <span className="flex items-center text-emerald-400">
           <CheckCircle className="w-3.5 h-3.5 mr-1" />
-          ตัดบิลค้างไป {settledBills?.length || 1} รายการ
+          {settledBills && settledBills.length > 0
+            ? `ตัดบิลค้างไป ${settledBills.length} รายการ`
+            : 'บันทึกรายการรับเงินคืนลง Transactions เรียบร้อย'}
         </span>
         {dBal !== undefined && (
           <span className="text-slate-300">

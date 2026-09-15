@@ -36,7 +36,7 @@ export const FinancialSummaryCard = ({ data }) => {
       {/* 3 Bank Cards */}
       <div className="grid grid-cols-3 gap-2 py-3 border-b border-white/5">
         {(accounts || []).map((acc) => {
-          const info = ACCOUNT_MAP[acc.id] || acc;
+          const info = { ...(ACCOUNT_MAP[acc.id] || {}), ...acc };
           return (
             <div
               key={acc.id}

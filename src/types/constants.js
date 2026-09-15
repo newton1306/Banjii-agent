@@ -7,7 +7,7 @@ export const STRICT_ACCOUNTS = [
     type: 'debit',
     accentColor: '#00A7E6',
     cardImage: '/cards/ktb-sme-gen.png',
-    mask: '•••• 1920',
+    mask: '•••• 5505',
   },
   {
     id: 'kbank',
@@ -17,7 +17,7 @@ export const STRICT_ACCOUNTS = [
     type: 'savings',
     accentColor: '#138F2D',
     cardImage: '/cards/kbank-gen.png',
-    mask: '•••• 7102',
+    mask: '•••• 0000',
   },
   {
     id: 'bbl',
@@ -27,7 +27,7 @@ export const STRICT_ACCOUNTS = [
     type: 'debit',
     accentColor: '#1E3A8A',
     cardImage: '/cards/kmutt-bbl-isolated.png',
-    mask: '•••• 6451',
+    mask: '•••• 0000',
   },
 ];
 

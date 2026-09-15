@@ -8,7 +8,7 @@ import { STRICT_ACCOUNTS, CATEGORY_MAP } from '../types/constants.js';
 export const GEMINI_TOOLS_DECLARATION = [
   {
     name: 'add_transaction',
-    description: 'บันทึกรายการธุรกรรมทั่วไป (รายจ่าย หรือ รายรับ) ลงในระบบ Banjii พร้อมหักหรือเพิ่มยอดคงเหลือในบัญชีธนาคาร',
+    description: 'บันทึกรายการธุรกรรมทั่วไป (รายจ่าย หรือ รายรับ) ลงในตาราง transactions',
     parameters: {
       type: 'OBJECT',
       properties: {
@@ -30,7 +30,7 @@ export const GEMINI_TOOLS_DECLARATION = [
   },
   {
     name: 'create_split_bill',
-    description: 'สร้างบิลหารค่าใช้จ่ายกับเพื่อน พร้อมคำนวณส่วนของตนเองและเพื่อนแต่ละคน (ระบบจะสร้างเพื่อนใหม่อัตโนมัติหากยังไม่มี)',
+    description: 'บันทึกรายการหารบิลค่าใช้จ่ายลงในตาราง transactions พร้อมระบุสัดส่วนของตนเองและเพื่อนในบันทึกช่วยจำ',
     parameters: {
       type: 'OBJECT',
       properties: {
@@ -58,7 +58,7 @@ export const GEMINI_TOOLS_DECLARATION = [
   },
   {
     name: 'record_transfer',
-    description: 'บันทึกการโอนเงินข้ามบัญชีระหว่าง 3 บัญชีของเราเอง (ktb, kbank, bbl)',
+    description: 'บันทึกคู่ธุรกรรมโอนเงินข้ามบัญชีระหว่าง 3 บัญชีของเราเอง (ktb, kbank, bbl) ลงในตาราง transactions',
     parameters: {
       type: 'OBJECT',
       properties: {
@@ -72,7 +72,7 @@ export const GEMINI_TOOLS_DECLARATION = [
   },
   {
     name: 'settle_friend_debt',
-    description: 'บันทึกเมื่อเพื่อนโอนเงินคืนหนี้ที่เคยหารไว้ ระบบจะตัดหนี้บิลค้างและเพิ่มเงินเข้าบัญชีของเรา',
+    description: 'บันทึกรายการรับเงินคืนจากเพื่อนลงในตาราง transactions',
     parameters: {
       type: 'OBJECT',
       properties: {
@@ -86,7 +86,7 @@ export const GEMINI_TOOLS_DECLARATION = [
   },
   {
     name: 'get_financial_summary',
-    description: 'ดูสรุปยอดเงินคงเหลือของทุกบัญชีธนาคาร (ktb, kbank, bbl) ยอดรวมทรัพย์สิน และรายชื่อเพื่อนที่ยังค้างเงินเราอยู่ทั้งหมด',
+    description: 'ดูสรุปยอดเงินคงเหลือของบัญชีธนาคาร (ktb, kbank, bbl) และภาพรวมทรัพย์สิน',
     parameters: {
       type: 'OBJECT',
       properties: {}
@@ -94,7 +94,7 @@ export const GEMINI_TOOLS_DECLARATION = [
   },
   {
     name: 'get_recent_transactions',
-    description: 'ดูประวัติรายการธุรกรรมล่าสุดในระบบ Banjii',
+    description: 'ดูประวัติรายการธุรกรรมล่าสุดจากตาราง transactions ในระบบ Banjii',
     parameters: {
       type: 'OBJECT',
       properties: {
@@ -142,7 +142,6 @@ export async function executeAgentTool(toolName, args) {
 
         const acc = STRICT_ACCOUNTS.find((a) => a.id === res.transaction.account_id);
         const cat = CATEGORY_MAP[res.transaction.category]?.name || res.transaction.category;
-        const remainingAcc = res.updatedAccounts.find((a) => a.id === res.transaction.account_id);
 
         const formattedReply = formatStandardResponse({
           statusTitle: `บันทึกรายการ${res.transaction.type === 'expense' ? 'รายจ่าย' : 'รายรับ'}สำเร็จ`,
@@ -154,7 +153,7 @@ export async function executeAgentTool(toolName, args) {
             `วันที่: **${formatThaiDatePretty(res.transaction.date)}**`,
             ...(args.target_portion === 0 ? ['งบรายวัน: ยกเว้นรายการนี้ (Target Portion: 0)'] : [])
           ],
-          tipOrBalance: `ยอดเงินคงเหลือใน ${acc?.name || 'บัญชี'}: **฿${formatCurrency(remainingAcc?.balance || 0)}**`
+          tipOrBalance: `บันทึกรายการลงตาราง transactions เรียบร้อย (ประเภท: ${res.transaction.type === 'expense' ? 'รายจ่าย' : 'รายรับ'})`
         });
 
         return {
@@ -176,8 +175,7 @@ export async function executeAgentTool(toolName, args) {
         });
 
         const acc = STRICT_ACCOUNTS.find((a) => a.id === args.account_id);
-        const payingAcc = res.updatedAccounts.find((a) => a.id === args.account_id);
-        const memberBreakdown = res.members.map(
+        const memberBreakdown = (res.members || []).map(
           (m) => `${m.name} รับผิดชอบ ฿${formatCurrency(m.amount)}`
         ).join(', ');
 
@@ -190,7 +188,7 @@ export async function executeAgentTool(toolName, args) {
             `ยอดเพื่อนหาร: **${memberBreakdown}**`,
             `วันที่: **${formatThaiDatePretty(res.bill.date)}**`
           ],
-          tipOrBalance: `ตัดเงินสำรองจาก ${acc?.name} แล้ว คงเหลือ: **฿${formatCurrency(payingAcc?.balance || 0)}** (บันทึกเพื่อนใหม่และหนี้ค้างชำระลงระบบเรียบร้อย)`
+          tipOrBalance: `บันทึกรายการลงตาราง transactions เรียบร้อย พร้อมบันทึกส่วนของคุณ [split_share:${args.my_share}] ในโน้ต`
         });
 
         return {
@@ -211,8 +209,6 @@ export async function executeAgentTool(toolName, args) {
 
         const sAcc = STRICT_ACCOUNTS.find((a) => a.id === args.source_account);
         const dAcc = STRICT_ACCOUNTS.find((a) => a.id === args.dest_account);
-        const sBal = res.updatedAccounts.find((a) => a.id === args.source_account)?.balance || 0;
-        const dBal = res.updatedAccounts.find((a) => a.id === args.dest_account)?.balance || 0;
 
         const formattedReply = formatStandardResponse({
           statusTitle: `โอนเงินระหว่างบัญชีสำเร็จ`,
@@ -222,7 +218,7 @@ export async function executeAgentTool(toolName, args) {
             `ยอดเงินที่โอน: **฿${formatCurrency(args.amount)}**`,
             `วันที่: **${formatThaiDatePretty(res.sourceTx.date)}**`
           ],
-          tipOrBalance: `${sAcc?.name} คงเหลือ: ฿${formatCurrency(sBal)} | ${dAcc?.name} คงเหลือ: ฿${formatCurrency(dBal)}`
+          tipOrBalance: `บันทึกคู่รายการโอนออกและโอนเข้าลงตาราง transactions เรียบร้อย`
         });
 
         return {
@@ -242,18 +238,16 @@ export async function executeAgentTool(toolName, args) {
         });
 
         const dAcc = STRICT_ACCOUNTS.find((a) => a.id === res.depositAccount);
-        const dBal = res.updatedAccounts.find((a) => a.id === res.depositAccount)?.balance || 0;
 
         const formattedReply = formatStandardResponse({
-          statusTitle: `บันทึกการรับเงินคืนและตัดหนี้สำเร็จ`,
+          statusTitle: `บันทึกการรับเงินคืนสำเร็จ`,
           details: [
             `ผู้โอนคืน: **${res.friendName}**`,
             `ยอดเงินคืน: **฿${formatCurrency(res.amountSettled)}**`,
             `เข้าบัญชี: **${dAcc?.name || res.depositAccount}**`,
-            `ตัดหนี้ไป: **${res.settledBills.length} รายการบิลค้าง**`,
             `บันทึกรายการ: **Auto Debt Settlement (${res.friendName})**`
           ],
-          tipOrBalance: `ยอดเงินในบัญชี ${dAcc?.name} เพิ่มเป็น: **฿${formatCurrency(dBal)}**`
+          tipOrBalance: `บันทึกรายการรับเงินคืนลงตาราง transactions เรียบร้อย (แท็ก [debt_repayment])`
         });
 
         return {
@@ -271,20 +265,13 @@ export async function executeAgentTool(toolName, args) {
           (a) => `• ${a.name} (${a.bank}): **฿${formatCurrency(a.balance)}**`
         );
 
-        const friendLines = res.friendDebtList.length > 0
-          ? res.friendDebtList.map((f) => `• ${f.name}: **฿${formatCurrency(f.amount)}**`)
-          : ['• ไม่มีเพื่อนค้างเงิน 🎉'];
-
         const formattedReply = [
           `🎯 **สรุปภาพรวมสถานะการเงินปัจจุบัน**`,
           '',
           `💳 **ยอดเงินคงเหลือในบัญชี (รวม ฿${formatCurrency(res.totalBalance)}):**`,
           ...accLines,
           '',
-          `👥 **ยอดที่เพื่อนยังค้างเราอยู่ (รวม ฿${formatCurrency(res.totalFriendDebt)}):**`,
-          ...friendLines,
-          '',
-          `💡 **ข้อมูลอัพเดต:** ตรวจสอบข้อมูลสดจากฐานข้อมูล Supabase แบบ Real-time`
+          `💡 **ข้อมูลอัพเดต:** อ่านข้อมูลอย่างเดียว ไม่มีการแก้ไขตารางใดๆ ในระบบ`
         ].join('\n');
 
         return {
