@@ -11,11 +11,29 @@ import { Bot, User, Sparkles, Cpu } from 'lucide-react';
 export const ChatContainer = ({ messages = [], isLoading = false, updatedAccounts = [] }) => {
   const scrollRef = useRef(null);
 
-  useEffect(() => {
+  const scrollToBottom = (smooth = true) => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: smooth ? 'smooth' : 'auto',
+      });
     }
+  };
+
+  useEffect(() => {
+    scrollToBottom(true);
   }, [messages, isLoading]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+    const handleViewport = () => {
+      setTimeout(() => {
+        scrollToBottom(true);
+      }, 60);
+    };
+    window.visualViewport.addEventListener('resize', handleViewport);
+    return () => window.visualViewport.removeEventListener('resize', handleViewport);
+  }, []);
 
   const renderToolCard = (msg) => {
     if (!msg.toolResult || !msg.toolResult.data) return null;
@@ -40,7 +58,7 @@ export const ChatContainer = ({ messages = [], isLoading = false, updatedAccount
   };
 
   return (
-    <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 max-w-3xl mx-auto w-full">
+    <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 max-w-3xl mx-auto w-full overscroll-contain">
       {messages.length === 0 && (
         <div className="py-12 text-center space-y-4 max-w-md mx-auto">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-electric-violet to-neon-lime mx-auto p-[2px] shadow-glow-violet">

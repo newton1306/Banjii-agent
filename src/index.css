@@ -11,6 +11,13 @@
     padding: 0;
     overflow: hidden;
     background-color: #0A0A12;
+    overscroll-behavior: none;
+    overscroll-behavior-y: none;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  input, textarea, button {
+    touch-action: manipulation;
   }
 }
 

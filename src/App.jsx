@@ -25,6 +25,27 @@ export function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [prefillPrompt, setPrefillPrompt] = useState(null);
+  const [viewportHeight, setViewportHeight] = useState('100%');
+
+  // Dynamically adapt to mobile virtual keyboard via visualViewport
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+
+    const handleResize = () => {
+      const currentHeight = window.visualViewport.height;
+      setViewportHeight(`${currentHeight}px`);
+      window.scrollTo(0, 0);
+    };
+
+    window.visualViewport.addEventListener('resize', handleResize);
+    window.visualViewport.addEventListener('scroll', handleResize);
+    handleResize();
+
+    return () => {
+      window.visualViewport.removeEventListener('resize', handleResize);
+      window.visualViewport.removeEventListener('scroll', handleResize);
+    };
+  }, []);
 
   // Fetch initial live accounts from Supabase
   const loadAccounts = useCallback(async () => {
@@ -97,7 +118,10 @@ export function App() {
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] max-h-[100dvh] w-full bg-[#0A0A12] text-slate-100 antialiased overflow-hidden select-none">
+    <div
+      style={{ height: viewportHeight }}
+      className="flex flex-col w-full bg-[#0A0A12] text-slate-100 antialiased overflow-hidden select-none fixed inset-0 transition-[height] duration-75 ease-out"
+    >
       {/* Top Header with live bank badges */}
       <Header
         accounts={accounts}

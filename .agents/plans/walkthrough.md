@@ -1,27 +1,33 @@
-# Walkthrough - Live Friend Debt Synchronization & Quick Prompt Cleanup
+# Walkthrough - Mobile Keyboard Smoothness & Chat Input UX Overhaul
 
-## 1. Quick Prompt Cleanup
-- **Removed Chip:** Removed `👥 เช็คยอดหนี้` from `QuickPromptChips.jsx`. The quick prompts now feature the two primary user intents:
-  1. `⏱️ รายการล่าสุด`
-  2. `💰 เช็คยอดเงิน`
-- **Updated Welcome Examples:** Adjusted the welcome screen suggestions in `ChatContainer.jsx` so `💰 เช็คยอดเงิน` clarifies that it checks both 3 bank balances and outstanding friend debts.
+## 1. Root Cause of Keyboard "Jumping/Bouncing" ("แป้นพิมพ์เด้ง")
+1. **iOS Safari Auto-Zoom on Input Focus:**
+   - **Cause:** When an input element on iOS Safari/WebKit has a font-size smaller than 16px (previously `text-xs sm:text-sm` = 12px/14px), iOS forces an automatic viewport zoom-in to 16px, abruptly scaling the entire page up, causing horizontal scroll, and pushing the header off-screen.
+   - **Fix:** Upgraded the input text size to `text-[16px] sm:text-sm`. With 16px font-size, iOS Safari **never triggers auto-zoom**, completely eliminating the jarring bounce.
+2. **Fixed Viewport & Virtual Keyboard Height:**
+   - **Cause:** Mobile browsers' `100dvh` does not contract when the virtual keyboard pops up on some iOS/Android devices, causing the page body to scroll and bounce.
+   - **Fix:**
+     - Added `interactive-widget=resizes-content` to the `viewport` meta tag in `index.html`.
+     - Integrated `window.visualViewport` listener in `App.jsx` to dynamically track the exact visible height above the on-screen keyboard, binding the root container to `style={{ height: viewportHeight }}` with `fixed inset-0`.
+     - Added `overscroll-behavior: none; touch-action: manipulation;` in `index.css` to prevent body rubber-banding.
+3. **Smooth Scroll to Bottom on Viewport Change:**
+   - Added a `visualViewport` resize listener in `ChatContainer.jsx` that automatically and smoothly scrolls the chat thread so the latest messages remain perfectly in view above the keyboard.
 
 ---
 
-## 2. Live Friend Debt Synchronization (`split_bill_members`)
-- **Problem Solved:** Previously, `DatabaseService.getFinancialSummary()` returned hardcoded `totalFriendDebt: 0` and `friendDebtList: []`. As a result, even though the main Banjii website had active outstanding debts from friends (such as `Ikkiw` owing ฿270.00 from bill #15 "ค่ารถมมส"), the chatbot always replied that there was no debt.
-- **Real-Time Debt Aggregation:**
-  - Implemented real-time aggregation querying `split_bill_members` from Supabase in `DatabaseService.getFinancialSummary()`.
-  - Calculates each friend's remaining debt (`Math.max(0, owed - paid)`), total amount owed, and unpaid bill counts matching the exact algorithm used by `SplitBillsView.jsx` on the main Banjii app.
-  - Formats detailed breakdowns in `agentTools.js` and renders them cleanly in `FinancialSummaryCard.jsx`.
-- **Bidirectional Sync:**
-  - `createSplitBill`: Automatically records the bill in `split_bills` and member allocations in `split_bill_members` in Supabase alongside the transaction record.
-  - `settleFriendDebt`: Automatically reconciles unpaid records in `split_bill_members` (updating `paid_amount` and `is_paid`) when a friend pays back their debt.
+## 2. Chat Input & UI Modernization
+- **Cohesive Floating Input Bar:**
+  - Redesigned `ChatInput.jsx` into a unified, modern pill layout with `rounded-2xl`, glassmorphic backdrop (`bg-[#161626]/90 backdrop-blur-xl`), and dark inner shadow.
+  - Focused state features a smooth glow ring (`focus-within:border-neon-lime/60 focus-within:ring-2 focus-within:ring-neon-lime/20`).
+- **Interactive Action Buttons:**
+  - **Voice Button:** Rounded-2xl button with smooth audio recording pulse state.
+  - **Send Button:** Dynamic contrast (subtle when empty, bright neon-lime with drop-shadow when text is present).
+- **Refined Quick Prompt Chips:**
+  - Rounded-full pill chips with subtle glowing borders (`QuickPromptChips.jsx`) floating seamlessly above the input.
 
 ---
 
 ## 3. Verification & Deployment
-- ✅ **Live DB Verification:** Verified with live database query that `getFinancialSummary()` correctly retrieves `Ikkiw: ฿270.00 (1 บิล)` and total friend debt of `฿270.00`.
-- ✅ **Intent Parsing Verification:** Confirmed that asking "เช็คยอดเงิน" or "ใครติดเงินเราบ้าง" both retrieve the full financial summary and report friend debt accurately.
-- ✅ **Production Deployment:** Built and deployed live to Netlify at [https://banjii-agent.netlify.app](https://banjii-agent.netlify.app) (Deploy ID: `6aa8ea9ff13c76776ff7a335`).
-- ✅ **Version Control:** Committed and pushed changes to GitHub `master` branch.
+- ✅ **Build:** `npm run build` compiled without any warnings or errors.
+- ✅ **Netlify Production Deployment:** Deployed live to [https://banjii-agent.netlify.app](https://banjii-agent.netlify.app) (Deploy ID: `6aa8ec53e03dbfcd3f3d834a`).
+- ✅ **Version Control:** Committed and pushed all changes cleanly to GitHub master.
