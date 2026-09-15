@@ -275,16 +275,23 @@ export async function executeAgentTool(toolName, args) {
         const res = await DatabaseService.getFinancialSummary();
 
         const accLines = res.accounts.map(
-          (a) => `• ${a.name} (${a.bank}): **฿${formatCurrency(a.balance)}**`
+          (a) => `• ${a.name} (${a.bank || a.id}): **฿${formatCurrency(a.balance)}**`
         );
+
+        const debtLines = (res.friendDebtList && res.friendDebtList.length > 0)
+          ? res.friendDebtList.map((f) => `• **${f.name}**: ค้าง ฿${formatCurrency(f.amount)} (${f.unpaidBillsCount} บิล)`)
+          : ['• ไม่มีเพื่อนค้างเงินเราในขณะนี้'];
 
         const formattedReply = [
           `🎯 **สรุปภาพรวมสถานะการเงินปัจจุบัน**`,
           '',
-          `💳 **ยอดเงินคงเหลือในบัญชี (รวม ฿${formatCurrency(res.totalBalance)}):**`,
+          `💳 **ยอดเงินคงเหลือ 3 บัญชี (รวม ฿${formatCurrency(res.totalBalance)}):**`,
           ...accLines,
           '',
-          `💡 **ข้อมูลอัพเดต:** อ่านข้อมูลอย่างเดียว ไม่มีการแก้ไขตารางใดๆ ในระบบ`
+          `👥 **ยอดหนี้ที่เพื่อนค้างเรา (รวม ฿${formatCurrency(res.totalFriendDebt)}):**`,
+          ...debtLines,
+          '',
+          `💡 **ข้อมูลอัพเดต:** ดึงข้อมูลยอดเงินและหนี้ค้างจากระบบฐานข้อมูลหลักแบบเรียลไทม์`
         ].join('\n');
 
         return {

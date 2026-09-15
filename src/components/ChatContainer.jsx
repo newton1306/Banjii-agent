@@ -63,8 +63,7 @@ export const ChatContainer = ({ messages = [], isLoading = false, updatedAccount
               <span>ตัวอย่างประโยคที่คุณสามารถสั่งได้:</span>
             </div>
             <p className="text-slate-400 italic">• "รายการล่าสุด" (ดูประวัติธุรกรรม)</p>
-            <p className="text-slate-400 italic">• "เช็คยอดเงิน" (ดูยอดคงเหลือ 3 บัญชี)</p>
-            <p className="text-slate-400 italic">• "เช็คยอดหนี้" (ดูหนี้ค้างและเพื่อนที่ยังติดเงิน)</p>
+            <p className="text-slate-400 italic">• "เช็คยอดเงิน" (ดูยอดคงเหลือ 3 บัญชี และหนี้ที่เพื่อนค้างเรา)</p>
           </div>
         </div>
       )}

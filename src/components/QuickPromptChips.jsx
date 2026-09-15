@@ -9,10 +9,6 @@ export const QUICK_PROMPTS = [
     label: '💰 เช็คยอดเงิน',
     prompt: 'เช็คยอดเงิน',
   },
-  {
-    label: '👥 เช็คยอดหนี้',
-    prompt: 'เช็คยอดหนี้',
-  },
 ];
 
 export const QuickPromptChips = ({ onSelectPrompt, disabled = false }) => {

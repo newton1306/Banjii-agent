@@ -160,6 +160,33 @@ export class DatabaseService {
     // Deduct total bill amount from paying account balance
     const updatedAccounts = await this.updateAccountBalances({ [account_id]: -totalAmount });
 
+    // Also sync bill and members to split_bills and split_bill_members table for main web integration
+    try {
+      const { data: billRes } = await supabase
+        .from('split_bills')
+        .insert({
+          title: title.trim(),
+          total_amount: totalAmount,
+          date: txDate,
+          linked_transaction_id: insertedTx?.id || null,
+        })
+        .select()
+        .single();
+
+      if (billRes && members && members.length > 0) {
+        const membersToInsert = members.map((m) => ({
+          bill_id: billRes.id,
+          name: m.name.trim(),
+          amount: round2(m.amount),
+          paid_amount: 0,
+          is_paid: false,
+        }));
+        await supabase.from('split_bill_members').insert(membersToInsert);
+      }
+    } catch (err) {
+      console.warn('Could not sync to split_bills table:', err);
+    }
+
     return {
       transaction: insertedTx,
       bill: {
@@ -278,6 +305,37 @@ export class DatabaseService {
       [deposit_account]: repaymentAmount,
     });
 
+    // Also update split_bill_members in Supabase if matching unpaid bills exist
+    try {
+      const { data: members } = await supabase
+        .from('split_bill_members')
+        .select('*')
+        .ilike('name', cleanName);
+
+      if (members && members.length > 0) {
+        let remainingToDeduct = repaymentAmount;
+        for (const m of members) {
+          if (!m.is_paid && remainingToDeduct > 0) {
+            const debtOnThisBill = round2((m.amount || 0) - (m.paid_amount || 0));
+            const pay = Math.min(debtOnThisBill, remainingToDeduct);
+            remainingToDeduct = round2(remainingToDeduct - pay);
+            const newPaid = round2((m.paid_amount || 0) + pay);
+            const isPaid = newPaid >= m.amount;
+
+            await supabase
+              .from('split_bill_members')
+              .update({
+                paid_amount: newPaid,
+                is_paid: isPaid,
+              })
+              .eq('id', m.id);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Could not update split_bill_members on repayment:', err);
+    }
+
     return {
       transaction: insertedTx,
       friendName: cleanName,
@@ -289,17 +347,63 @@ export class DatabaseService {
 
   /**
    * Get Financial Summary (READ-ONLY: Never modifies any table).
-   * Reads accounts from app_settings for display only.
+   * Reads accounts from app_settings and live friend debts from split_bill_members.
    */
   static async getFinancialSummary() {
     const accounts = await this.getAccounts();
     const totalBalance = round2(accounts.reduce((sum, a) => sum + Number(a.balance || 0), 0));
 
+    let friendDebtList = [];
+    let totalFriendDebt = 0;
+
+    try {
+      const { data: members, error } = await supabase
+        .from('split_bill_members')
+        .select('*');
+
+      if (!error && members && members.length > 0) {
+        const summary = {};
+        members.forEach((m) => {
+          if (!m?.name) return;
+          const key = m.name.trim().toLowerCase();
+          if (!summary[key]) {
+            summary[key] = {
+              name: m.name.trim(),
+              totalOwed: 0,
+              totalPaid: 0,
+              amount: 0,
+              unpaidBillsCount: 0,
+            };
+          }
+          const owed = round2(m.amount || 0);
+          const paid = round2(m.paid_amount || 0);
+          const remaining = Math.max(0, round2(owed - paid));
+
+          summary[key].totalOwed = round2(summary[key].totalOwed + owed);
+          summary[key].totalPaid = round2(summary[key].totalPaid + paid);
+          summary[key].amount = round2(summary[key].amount + remaining);
+          if (remaining > 0) {
+            summary[key].unpaidBillsCount += 1;
+          }
+        });
+
+        friendDebtList = Object.values(summary)
+          .filter((f) => f.amount > 0)
+          .sort((a, b) => b.amount - a.amount);
+
+        totalFriendDebt = round2(
+          friendDebtList.reduce((sum, f) => sum + f.amount, 0)
+        );
+      }
+    } catch (err) {
+      console.error('Error fetching friend debts in getFinancialSummary:', err);
+    }
+
     return {
       accounts,
       totalBalance,
-      totalFriendDebt: 0,
-      friendDebtList: [],
+      totalFriendDebt,
+      friendDebtList,
     };
   }
 

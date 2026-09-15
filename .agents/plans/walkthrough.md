@@ -1,25 +1,27 @@
-# Walkthrough - Gemini API Key Environment Migration & UI Cleanup
+# Walkthrough - Live Friend Debt Synchronization & Quick Prompt Cleanup
 
-## 1. Environment Variable Integration (`VITE_GEMINI_API_KEY`)
-- **Key Configured:** Set `VITE_GEMINI_API_KEY` (configured securely in `.env` and Netlify).
-- **Netlify Cloud Environment:** Configured the environment variable on Netlify using `netlify env:set VITE_GEMINI_API_KEY` for seamless cloud deployment.
-- **Git Security Safeguard:** `.env` remains strictly gitignored and excluded from version control.
+## 1. Quick Prompt Cleanup
+- **Removed Chip:** Removed `👥 เช็คยอดหนี้` from `QuickPromptChips.jsx`. The quick prompts now feature the two primary user intents:
+  1. `⏱️ รายการล่าสุด`
+  2. `💰 เช็คยอดเงิน`
+- **Updated Welcome Examples:** Adjusted the welcome screen suggestions in `ChatContainer.jsx` so `💰 เช็คยอดเงิน` clarifies that it checks both 3 bank balances and outstanding friend debts.
 
 ---
 
-## 2. Removal of Web API Key Input & UI Polish
-- **Removed Input Field:** Removed the manual `Google Gemini API Key` password input field from `SettingsModal.jsx`. Users no longer need to enter or manage API keys on the web interface.
-- **Active Connection Badge:** Added a clean status indicator in `SettingsModal.jsx` displaying:
-  - `Google Gemini API` with a glowing green status dot and "พร้อมใช้งาน (เชื่อมต่อผ่าน Environment Variable เรียบร้อย)".
-- **Model Selection & Engine Updates:**
-  - Defaulted AI engine to `gemini-3.6-flash` (ultra-fast, highly accurate Thai NLP parsing and function calling).
-  - Added support for `gemini-flash-latest` and `gemini-3.5-flash`.
-  - Updated button tooltip in `Header.jsx` to "ตั้งค่า AI Engine".
+## 2. Live Friend Debt Synchronization (`split_bill_members`)
+- **Problem Solved:** Previously, `DatabaseService.getFinancialSummary()` returned hardcoded `totalFriendDebt: 0` and `friendDebtList: []`. As a result, even though the main Banjii website had active outstanding debts from friends (such as `Ikkiw` owing ฿270.00 from bill #15 "ค่ารถมมส"), the chatbot always replied that there was no debt.
+- **Real-Time Debt Aggregation:**
+  - Implemented real-time aggregation querying `split_bill_members` from Supabase in `DatabaseService.getFinancialSummary()`.
+  - Calculates each friend's remaining debt (`Math.max(0, owed - paid)`), total amount owed, and unpaid bill counts matching the exact algorithm used by `SplitBillsView.jsx` on the main Banjii app.
+  - Formats detailed breakdowns in `agentTools.js` and renders them cleanly in `FinancialSummaryCard.jsx`.
+- **Bidirectional Sync:**
+  - `createSplitBill`: Automatically records the bill in `split_bills` and member allocations in `split_bill_members` in Supabase alongside the transaction record.
+  - `settleFriendDebt`: Automatically reconciles unpaid records in `split_bill_members` (updating `paid_amount` and `is_paid`) when a friend pays back their debt.
 
 ---
 
 ## 3. Verification & Deployment
-- ✅ **API Key & Model Validation:** Verified that `gemini-3.6-flash` authenticates with the provided key and successfully executes function calling (`add_transaction`, etc.) via node tests.
-- ✅ **Vite Production Build:** `npm run build` completed cleanly without errors.
-- ✅ **Netlify Production Deployment:** Deployed live to [https://banjii-agent.netlify.app](https://banjii-agent.netlify.app).
-- ✅ **GitHub Push:** Master branch updated on [https://github.com/newton1306/Banjii-agent](https://github.com/newton1306/Banjii-agent) with `.env` safely excluded.
+- ✅ **Live DB Verification:** Verified with live database query that `getFinancialSummary()` correctly retrieves `Ikkiw: ฿270.00 (1 บิล)` and total friend debt of `฿270.00`.
+- ✅ **Intent Parsing Verification:** Confirmed that asking "เช็คยอดเงิน" or "ใครติดเงินเราบ้าง" both retrieve the full financial summary and report friend debt accurately.
+- ✅ **Production Deployment:** Built and deployed live to Netlify at [https://banjii-agent.netlify.app](https://banjii-agent.netlify.app) (Deploy ID: `6aa8ea9ff13c76776ff7a335`).
+- ✅ **Version Control:** Committed and pushed changes to GitHub `master` branch.
