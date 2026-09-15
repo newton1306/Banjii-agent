@@ -9,9 +9,12 @@ export const ChatInput = ({ onSendMessage, disabled = false, prefillPrompt = '' 
 
   useEffect(() => {
     if (prefillPrompt) {
-      setInput(prefillPrompt);
-      if (inputRef.current) {
-        inputRef.current.focus();
+      const textVal = typeof prefillPrompt === 'object' ? prefillPrompt.text : prefillPrompt;
+      if (textVal) {
+        setInput(textVal);
+        if (inputRef.current) {
+          inputRef.current.focus();
+        }
       }
     }
   }, [prefillPrompt]);
@@ -84,7 +87,7 @@ export const ChatInput = ({ onSendMessage, disabled = false, prefillPrompt = '' 
   return (
     <form
       onSubmit={handleSubmit}
-      className="p-3 bg-[#0A0A12]/90 border-t border-white/10 backdrop-blur-md"
+      className="px-3 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom,12px))] bg-[#0A0A12]/95 border-t border-white/10 backdrop-blur-md"
     >
       <div className="max-w-3xl mx-auto flex items-center space-x-2">
         {/* Voice Button */}

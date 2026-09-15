@@ -5,7 +5,7 @@ import { TransferCard } from './cards/TransferCard';
 import { RepaymentCard } from './cards/RepaymentCard';
 import { FinancialSummaryCard } from './cards/FinancialSummaryCard';
 import { RecentTransactionsCard } from './cards/RecentTransactionsCard';
-import { Bot, User, Sparkles } from 'lucide-react';
+import { Bot, User, Sparkles, Cpu } from 'lucide-react';
 
 export const ChatContainer = ({ messages = [], isLoading = false, updatedAccounts = [] }) => {
   const scrollRef = useRef(null);
@@ -61,11 +61,9 @@ export const ChatContainer = ({ messages = [], isLoading = false, updatedAccount
               <Sparkles className="w-3.5 h-3.5" />
               <span>ตัวอย่างประโยคที่คุณสามารถสั่งได้:</span>
             </div>
-            <p className="text-slate-400 italic">• "กินข้าวแกงกะหรี่ 180 จ่าย kbank"</p>
-            <p className="text-slate-400 italic">• "จ่ายค่าคอร์ทแบด 995 ktb หารกับ Nine, Praew, Non คนละเท่าๆ กัน ส่วนเรา 70"</p>
-            <p className="text-slate-400 italic">• "Non โอนคืน 150 เข้า kbank"</p>
-            <p className="text-slate-400 italic">• "โอนเงินจาก ktb ไป kbank 500"</p>
-            <p className="text-slate-400 italic">• "ตอนนี้เหลือเงินแต่ละบัญชีเท่าไหร่ และใครติดเงินเราบ้าง"</p>
+            <p className="text-slate-400 italic">• "รายการล่าสุด" (ดูประวัติธุรกรรม)</p>
+            <p className="text-slate-400 italic">• "เช็คยอดเงิน" (ดูยอดคงเหลือ 3 บัญชี)</p>
+            <p className="text-slate-400 italic">• "เช็คยอดหนี้" (ดูหนี้ค้างและเพื่อนที่ยังติดเงิน)</p>
           </div>
         </div>
       )}
@@ -104,11 +102,26 @@ export const ChatContainer = ({ messages = [], isLoading = false, updatedAccount
               {!isUser && renderToolCard(msg)}
 
               <div
-                className={`text-[10px] text-slate-500 mt-1 px-1 ${
-                  isUser ? 'text-right' : 'text-left'
+                className={`text-[10px] text-slate-500 mt-1.5 px-1 flex items-center ${
+                  isUser ? 'justify-end' : 'justify-between'
                 }`}
               >
-                {msg.time}
+                {!isUser && msg.engine && (
+                  <div className="flex items-center space-x-1">
+                    {msg.engine.toLowerCase().includes('gemini') ? (
+                      <span className="inline-flex items-center space-x-1 text-[10px] font-semibold text-electric-violet bg-electric-violet/10 border border-electric-violet/20 px-1.5 py-0.5 rounded-md">
+                        <Sparkles className="w-2.5 h-2.5 text-electric-violet" />
+                        <span>{msg.engine}</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center space-x-1 text-[10px] font-semibold text-neon-lime bg-neon-lime/10 border border-neon-lime/25 px-1.5 py-0.5 rounded-md">
+                        <Cpu className="w-2.5 h-2.5 text-neon-lime" />
+                        <span>{msg.engine}</span>
+                      </span>
+                    )}
+                  </div>
+                )}
+                <span>{msg.time}</span>
               </div>
             </div>
           </div>

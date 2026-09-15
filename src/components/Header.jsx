@@ -5,7 +5,7 @@ import { Settings, Sparkles, Activity, ShieldCheck } from 'lucide-react';
 
 export const Header = ({ accounts = [], onOpenSettings }) => {
   return (
-    <header className="sticky top-0 z-30 bg-[#0A0A12]/90 backdrop-blur-md border-b border-white/10 px-4 py-3">
+    <header className="sticky top-0 z-30 bg-[#0A0A12]/95 backdrop-blur-md border-b border-white/10 px-4 pt-[max(0.75rem,env(safe-area-inset-top,12px))] pb-3">
       <div className="max-w-3xl mx-auto flex items-center justify-between">
         {/* Brand */}
         <div className="flex items-center space-x-2.5">

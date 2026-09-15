@@ -32,13 +32,16 @@ export class ThaiNlpParser {
     const trimmed = input.trim();
     const lower = trimmed.toLowerCase();
 
-    // 1. Financial Summary Intent: "เหลือเงินเท่าไหร่", "ใครติดเงิน", "สรุปยอด"
+    // 1. Financial Summary Intent: "เหลือเงินเท่าไหร่", "ใครติดเงิน", "สรุปยอด", "เช็คยอดเงิน", "เช็คยอดหนี้"
     if (
       (lower.includes('เหลือ') && lower.includes('เงิน')) ||
       (lower.includes('ใคร') && (lower.includes('ติดเงิน') || lower.includes('ค้าง'))) ||
       lower.includes('สรุปยอด') ||
       lower.includes('ยอดเงิน') ||
       lower.includes('เช็คเงิน') ||
+      lower.includes('ยอดหนี้') ||
+      lower.includes('เช็คยอดหนี้') ||
+      lower.includes('หนี้') ||
       lower.includes('summary')
     ) {
       return await executeAgentTool('get_financial_summary', {});

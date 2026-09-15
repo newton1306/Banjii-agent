@@ -28,25 +28,35 @@ const SYSTEM_INSTRUCTION = `
 
 export class GeminiAgentClient {
   static getApiKey() {
-    return (
-      localStorage.getItem('banjii_agent_gemini_key') ||
-      import.meta.env.VITE_GEMINI_API_KEY ||
-      ''
-    ).trim();
+    const fromStorage = typeof localStorage !== 'undefined' ? localStorage.getItem('banjii_agent_gemini_key') : '';
+    const fromEnv = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_GEMINI_API_KEY : '';
+    return (fromStorage || fromEnv || '').trim();
   }
 
   static getSelectedModel() {
-    return localStorage.getItem('banjii_agent_model') || 'gemini-2.0-flash';
+    return (typeof localStorage !== 'undefined' ? localStorage.getItem('banjii_agent_model') : '') || 'gemini-2.0-flash';
+  }
+
+  static getModelDisplayName(rawModel) {
+    if (rawModel === 'gemini-2.0-flash') return 'Gemini 2.0 Flash';
+    if (rawModel === 'gemini-1.5-pro') return 'Gemini 1.5 Pro';
+    if (rawModel === 'gemini-1.5-flash') return 'Gemini 1.5 Flash';
+    return rawModel || 'Gemini AI';
   }
 
   static async processMessage(userMessage) {
     const apiKey = this.getApiKey();
     const modelName = this.getSelectedModel();
+    const engineLabel = this.getModelDisplayName(modelName);
 
     // If no API key configured, use built-in intelligent Thai NLP fallback parser
     if (!apiKey) {
       console.log('No Gemini API Key provided. Using Built-in Thai NLP Parser.');
-      return await ThaiNlpParser.parseAndExecute(userMessage);
+      const nlpResult = await ThaiNlpParser.parseAndExecute(userMessage);
+      return {
+        ...nlpResult,
+        engine: 'Built-in Thai NLP',
+      };
     }
 
     try {
@@ -94,10 +104,14 @@ export class GeminiAgentClient {
           return {
             ...toolResult,
             formattedReply: finalReply || toolResult.formattedReply,
+            engine: engineLabel,
           };
         } catch (secondErr) {
           console.warn('Error in Gemini secondary synthesis, returning tool standard response:', secondErr);
-          return toolResult;
+          return {
+            ...toolResult,
+            engine: engineLabel,
+          };
         }
       }
 
@@ -107,11 +121,16 @@ export class GeminiAgentClient {
         tool: 'chat',
         success: true,
         formattedReply: plainText,
+        engine: engineLabel,
       };
     } catch (err) {
       console.error('Gemini API call failed, falling back to Thai NLP parser:', err);
       // Fallback seamlessly to local parser
-      return await ThaiNlpParser.parseAndExecute(userMessage);
+      const fallbackResult = await ThaiNlpParser.parseAndExecute(userMessage);
+      return {
+        ...fallbackResult,
+        engine: 'Built-in Thai NLP (Fallback)',
+      };
     }
   }
 }

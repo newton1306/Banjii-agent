@@ -16,6 +16,7 @@ export function App() {
         text: 'สวัสดีครับ! ผมคือ Banjii Conversational Financial AI Agent ผู้ช่วยจัดการเงินของคุณ 🤖💳\nคุณสามารถพิมพ์สั่งงานด้วยภาษาไทยได้เลย เช่น บันทึกรายจ่าย, หารบิลกับเพื่อน, โอนเงินข้ามบัญชี หรือสอบถามยอดเงินคงเหลือครับ',
         time: getBangkokTimeString(),
         toolResult: null,
+        engine: 'Banjii AI System',
       },
     ];
   });
@@ -23,7 +24,7 @@ export function App() {
   const [accounts, setAccounts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [prefillPrompt, setPrefillPrompt] = useState('');
+  const [prefillPrompt, setPrefillPrompt] = useState(null);
 
   // Fetch initial live accounts from Supabase
   const loadAccounts = useCallback(async () => {
@@ -70,6 +71,7 @@ export function App() {
           text: result.formattedReply || 'บันทึกรายการเรียบร้อยแล้วครับ',
           time: agentTime,
           toolResult: result,
+          engine: result.engine || 'Built-in Thai NLP',
         },
       ]);
     } catch (err) {
@@ -81,6 +83,7 @@ export function App() {
           text: `⚠️ เกิดข้อผิดพลาดในการประมวลผล: ${err.message}`,
           time: getBangkokTimeString(),
           toolResult: null,
+          engine: 'System Alert',
         },
       ]);
     } finally {
@@ -89,11 +92,12 @@ export function App() {
   };
 
   const handleSelectQuickPrompt = (prompt) => {
-    handleSendMessage(prompt);
+    // Populate into chat input instead of auto-sending
+    setPrefillPrompt({ text: prompt, ts: Date.now() });
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#0A0A12] text-slate-100 antialiased overflow-hidden select-none">
+    <div className="flex flex-col h-[100dvh] max-h-[100dvh] w-full bg-[#0A0A12] text-slate-100 antialiased overflow-hidden select-none">
       {/* Top Header with live bank badges */}
       <Header
         accounts={accounts}
