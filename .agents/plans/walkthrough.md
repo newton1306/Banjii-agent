@@ -1,34 +1,25 @@
-# Walkthrough - Dynamic Balance Updates & Clean Markdown Chat Rendering
+# Walkthrough - Gemini API Key Environment Migration & UI Cleanup
 
-## 1. Dynamic Account Balance Updates (`DatabaseService.updateAccountBalances`)
-- **Problem Solved:** Previously, recording transactions (expense, split bill, transfer, debt settlement) inserted rows into `transactions` but did not deduct/adjust the corresponding account balances in `app_settings.accounts`. Furthermore, earlier attempts hardcoded accounts which risked overwriting custom card masks (`•••• 5505`, etc.).
-- **Safe Balance Adjustment:**
-  - Added `DatabaseService.updateAccountBalances(deltas)` which queries live accounts from Supabase first and uses object spread (`...acc, balance: round2(acc.balance + delta)`) to guarantee that:
-    - Custom card masks (`•••• 5505`, etc.), names, and styles are **100% preserved**.
-    - Only the `balance` field is adjusted.
-  - Linked to all financial operations:
-    1. `addTransaction`: Deducts expense amount or adds income amount.
-    2. `createSplitBill`: Deducts the total bill amount from the paying account.
-    3. `recordTransfer`: Deducts from source account and adds to destination account.
-    4. `settleFriendDebt`: Adds repayment amount to the recipient deposit account.
-  - Returns `updatedAccounts` to immediately refresh the header balance pills and tool summary cards without requiring a page reload.
+## 1. Environment Variable Integration (`VITE_GEMINI_API_KEY`)
+- **Key Configured:** Set `VITE_GEMINI_API_KEY` (configured securely in `.env` and Netlify).
+- **Netlify Cloud Environment:** Configured the environment variable on Netlify using `netlify env:set VITE_GEMINI_API_KEY` for seamless cloud deployment.
+- **Git Security Safeguard:** `.env` remains strictly gitignored and excluded from version control.
 
 ---
 
-## 2. Rich Markdown Chat Rendering (Fix Asterisks `*` Display)
-- **Problem Solved:** Chat responses from both Gemini and built-in formatting contained Markdown syntax (e.g. `🎯 **บันทึกรายการรายจ่ายสำเร็จ**`, `* รายการ`, `**฿180.00**`). Because the message container rendered plaintext with `whitespace-pre-line`, asterisks appeared literally everywhere in the chat bubbles.
-- **`react-markdown` Integration:**
-  - Installed `react-markdown`.
-  - Configured `ChatContainer.jsx` to render bot messages through `<ReactMarkdown>` with custom Tailwind styling:
-    - `p`: Styled with `whitespace-pre-line mb-2 last:mb-0 leading-relaxed` so line breaks render naturally without collapsing.
-    - `strong`: Styled with `font-semibold text-white` for bright, readable emphasis.
-    - `ul` / `ol` / `li`: Formatted with clean disc/decimal bullets (`list-disc pl-5 space-y-1 my-2 text-slate-200`) instead of raw `*`.
-    - `code`: Formatted with a dark translucent badge and neon-lime text.
-    - `a`: Formatted with neon-lime link styling and `_blank` target.
+## 2. Removal of Web API Key Input & UI Polish
+- **Removed Input Field:** Removed the manual `Google Gemini API Key` password input field from `SettingsModal.jsx`. Users no longer need to enter or manage API keys on the web interface.
+- **Active Connection Badge:** Added a clean status indicator in `SettingsModal.jsx` displaying:
+  - `Google Gemini API` with a glowing green status dot and "พร้อมใช้งาน (เชื่อมต่อผ่าน Environment Variable เรียบร้อย)".
+- **Model Selection & Engine Updates:**
+  - Defaulted AI engine to `gemini-3.6-flash` (ultra-fast, highly accurate Thai NLP parsing and function calling).
+  - Added support for `gemini-flash-latest` and `gemini-3.5-flash`.
+  - Updated button tooltip in `Header.jsx` to "ตั้งค่า AI Engine".
 
 ---
 
 ## 3. Verification & Deployment
-- ✅ **Build:** `npm run build` completed cleanly in 7.43s with Vite.
-- ✅ **Netlify Production:** Deployed live to [https://banjii-agent.netlify.app](https://banjii-agent.netlify.app) (Deploy ID: `6aa8da0da9946ddd72ee8a1b`).
-- ✅ **Safety Safeguards:** User card masks (`•••• 5505`) and configurations in Supabase `app_settings` remain intact; `.env` is strictly gitignored and excluded from version control.
+- ✅ **API Key & Model Validation:** Verified that `gemini-3.6-flash` authenticates with the provided key and successfully executes function calling (`add_transaction`, etc.) via node tests.
+- ✅ **Vite Production Build:** `npm run build` completed cleanly without errors.
+- ✅ **Netlify Production Deployment:** Deployed live to [https://banjii-agent.netlify.app](https://banjii-agent.netlify.app).
+- ✅ **GitHub Push:** Master branch updated on [https://github.com/newton1306/Banjii-agent](https://github.com/newton1306/Banjii-agent) with `.env` safely excluded.

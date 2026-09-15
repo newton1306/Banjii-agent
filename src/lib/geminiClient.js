@@ -28,19 +28,19 @@ const SYSTEM_INSTRUCTION = `
 
 export class GeminiAgentClient {
   static getApiKey() {
-    const fromStorage = typeof localStorage !== 'undefined' ? localStorage.getItem('banjii_agent_gemini_key') : '';
     const fromEnv = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_GEMINI_API_KEY : '';
-    return (fromStorage || fromEnv || '').trim();
+    const fromStorage = typeof localStorage !== 'undefined' ? localStorage.getItem('banjii_agent_gemini_key') : '';
+    return (fromEnv || fromStorage || '').trim();
   }
 
   static getSelectedModel() {
-    return (typeof localStorage !== 'undefined' ? localStorage.getItem('banjii_agent_model') : '') || 'gemini-2.0-flash';
+    return (typeof localStorage !== 'undefined' ? localStorage.getItem('banjii_agent_model') : '') || 'gemini-3.6-flash';
   }
 
   static getModelDisplayName(rawModel) {
-    if (rawModel === 'gemini-2.0-flash') return 'Gemini 2.0 Flash';
-    if (rawModel === 'gemini-1.5-pro') return 'Gemini 1.5 Pro';
-    if (rawModel === 'gemini-1.5-flash') return 'Gemini 1.5 Flash';
+    if (rawModel === 'gemini-3.6-flash') return 'Gemini 3.6 Flash';
+    if (rawModel === 'gemini-flash-latest') return 'Gemini Flash Latest';
+    if (rawModel === 'gemini-3.5-flash') return 'Gemini 3.5 Flash';
     return rawModel || 'Gemini AI';
   }
 
@@ -78,41 +78,10 @@ export class GeminiAgentClient {
         // Execute the tool on Supabase
         const toolResult = await executeAgentTool(call.name, call.args);
 
-        // Feed tool result back to Gemini for conversational response
-        try {
-          const secondChat = model.startChat({
-            history: [
-              { role: 'user', parts: [{ text: userMessage }] },
-              { role: 'model', parts: [{ functionCall: call }] },
-              {
-                role: 'function',
-                parts: [
-                  {
-                    functionResponse: {
-                      name: call.name,
-                      response: { output: toolResult },
-                    },
-                  },
-                ],
-              },
-            ],
-          });
-
-          const secondResult = await secondChat.sendMessage('สรุปผลการทำรายการให้ผู้ใช้ในรูปแบบที่กำหนด');
-          const finalReply = await secondResult.response.text();
-
-          return {
-            ...toolResult,
-            formattedReply: finalReply || toolResult.formattedReply,
-            engine: engineLabel,
-          };
-        } catch (secondErr) {
-          console.warn('Error in Gemini secondary synthesis, returning tool standard response:', secondErr);
-          return {
-            ...toolResult,
-            engine: engineLabel,
-          };
-        }
+        return {
+          ...toolResult,
+          engine: engineLabel,
+        };
       }
 
       // If Gemini responded with plain text without tool calling, return text

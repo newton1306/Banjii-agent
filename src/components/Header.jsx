@@ -51,7 +51,7 @@ export const Header = ({ accounts = [], onOpenSettings }) => {
         <button
           onClick={onOpenSettings}
           className="w-9 h-9 rounded-xl bg-[#181826] border border-white/10 hover:border-white/20 flex items-center justify-center text-slate-300 hover:text-white transition-all active:scale-95"
-          title="ตั้งค่า AI API Key"
+          title="ตั้งค่า AI Engine"
         >
           <Settings className="w-4 h-4" />
         </button>

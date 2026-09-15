@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { X, Key, Cpu, ShieldCheck, Check, Sparkles } from 'lucide-react';
+import { X, Cpu, ShieldCheck, Check, Sparkles, CheckCircle2 } from 'lucide-react';
 
 export const SettingsModal = ({ isOpen, onClose }) => {
-  const [apiKey, setApiKey] = useState('');
-  const [model, setModel] = useState('gemini-2.0-flash');
+  const [model, setModel] = useState('gemini-3.6-flash');
   const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      setApiKey(localStorage.getItem('banjii_agent_gemini_key') || '');
-      setModel(localStorage.getItem('banjii_agent_model') || 'gemini-2.0-flash');
+      setModel(localStorage.getItem('banjii_agent_model') || 'gemini-3.6-flash');
       setIsSaved(false);
     }
   }, [isOpen]);
@@ -18,11 +16,6 @@ export const SettingsModal = ({ isOpen, onClose }) => {
 
   const handleSave = (e) => {
     e.preventDefault();
-    if (apiKey.trim()) {
-      localStorage.setItem('banjii_agent_gemini_key', apiKey.trim());
-    } else {
-      localStorage.removeItem('banjii_agent_gemini_key');
-    }
     localStorage.setItem('banjii_agent_model', model);
     setIsSaved(true);
     setTimeout(() => {
@@ -38,11 +31,11 @@ export const SettingsModal = ({ isOpen, onClose }) => {
         <div className="flex items-center justify-between pb-3 border-b border-white/5">
           <div className="flex items-center space-x-2.5">
             <div className="w-8 h-8 rounded-xl bg-neon-lime/15 text-neon-lime flex items-center justify-center">
-              <Key className="w-4 h-4" />
+              <Sparkles className="w-4 h-4" />
             </div>
             <div>
               <h3 className="font-bold text-white text-base">การตั้งค่า AI Engine</h3>
-              <p className="text-[11px] text-slate-400">Google Gemini API Configuration</p>
+              <p className="text-[11px] text-slate-400">Google Gemini Configuration</p>
             </div>
           </div>
           <button
@@ -55,58 +48,74 @@ export const SettingsModal = ({ isOpen, onClose }) => {
 
         {/* Form */}
         <form onSubmit={handleSave} className="space-y-4 text-xs">
-          {/* API Key Input */}
-          <div className="space-y-1.5">
-            <label className="text-slate-300 font-semibold flex items-center justify-between">
-              <span>Google Gemini API Key</span>
-              <span className="text-[10px] text-slate-500 font-normal">บันทึกในเครื่องปลอดภัย</span>
-            </label>
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="AIzaSy..."
-              className="w-full bg-black/40 border border-white/10 focus:border-neon-lime/60 text-slate-100 placeholder-slate-600 rounded-xl px-3.5 py-2.5 outline-none transition-all font-mono"
-            />
-            <p className="text-[10px] text-slate-400">
-              *หากเว้นว่างไว้ ระบบจะใช้ **Built-in Thai NLP Parser** อัตโนมัติ สามารถสั่งงานได้เต็มรูปแบบเช่นกัน
-            </p>
+          {/* Gemini API Key Environment Status */}
+          <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between">
+            <div className="flex items-center space-x-2.5">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-white font-semibold text-xs flex items-center space-x-1.5">
+                  <span>Google Gemini API</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                </div>
+                <div className="text-slate-400 text-[10px] mt-0.5">
+                  เชื่อมต่อผ่าน Environment Variable (.env) เรียบร้อย
+                </div>
+              </div>
+            </div>
+            <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-semibold px-2 py-0.5 rounded-full shrink-0">
+              พร้อมใช้งาน
+            </span>
           </div>
 
           {/* Model Selection */}
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <label className="text-slate-300 font-semibold flex items-center space-x-1">
               <Cpu className="w-3.5 h-3.5 text-electric-violet" />
               <span>เลือกรุ่น Gemini Model</span>
             </label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => setModel('gemini-2.0-flash')}
+                onClick={() => setModel('gemini-3.6-flash')}
                 className={`p-3 rounded-xl border text-left transition-all ${
-                  model === 'gemini-2.0-flash'
+                  model === 'gemini-3.6-flash'
                     ? 'bg-neon-lime/10 border-neon-lime text-white'
                     : 'bg-black/30 border-white/5 text-slate-400 hover:border-white/20'
                 }`}
               >
                 <div className="font-bold text-xs flex items-center space-x-1">
-                  <span>Gemini 2.0 Flash</span>
+                  <span>Gemini 3.6 Flash</span>
                   <Sparkles className="w-3 h-3 text-neon-lime" />
                 </div>
-                <div className="text-[10px] text-slate-400 mt-0.5">แนะนำ: รวดเร็ว ฉลาด ทรงพลัง</div>
+                <div className="text-[10px] text-slate-400 mt-0.5">แนะนำ: รวดเร็ว ฉลาด วิเคราะห์แม่นยำ</div>
               </button>
 
               <button
                 type="button"
-                onClick={() => setModel('gemini-1.5-flash')}
+                onClick={() => setModel('gemini-flash-latest')}
                 className={`p-3 rounded-xl border text-left transition-all ${
-                  model === 'gemini-1.5-flash'
+                  model === 'gemini-flash-latest'
                     ? 'bg-neon-lime/10 border-neon-lime text-white'
                     : 'bg-black/30 border-white/5 text-slate-400 hover:border-white/20'
                 }`}
               >
-                <div className="font-bold text-xs">Gemini 1.5 Flash</div>
-                <div className="text-[10px] text-slate-400 mt-0.5">เสถียร รองรับ Tool Calling สูง</div>
+                <div className="font-bold text-xs">Gemini Flash Latest</div>
+                <div className="text-[10px] text-slate-400 mt-0.5">รุ่นอัปเดตอัตโนมัติล่าสุด</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setModel('gemini-3.5-flash')}
+                className={`p-3 rounded-xl border text-left transition-all ${
+                  model === 'gemini-3.5-flash'
+                    ? 'bg-neon-lime/10 border-neon-lime text-white'
+                    : 'bg-black/30 border-white/5 text-slate-400 hover:border-white/20'
+                }`}
+              >
+                <div className="font-bold text-xs">Gemini 3.5 Flash</div>
+                <div className="text-[10px] text-slate-400 mt-0.5">รุ่นเสถียร รองรับ Tool Calling สูง</div>
               </button>
             </div>
           </div>
