@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGradFemale" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B0764" />
+      <stop offset="100%" stop-color="#181826" />
+    </linearGradient>
+    <linearGradient id="skinGradFemale" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFEAD5" />
+      <stop offset="100%" stop-color="#F7C9A9" />
+    </linearGradient>
+    <linearGradient id="hairGradFemale" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4A0E4E" />
+      <stop offset="100%" stop-color="#1E1B4B" />
+    </linearGradient>
+    <linearGradient id="topGradFemale" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#EC4899" />
+      <stop offset="100%" stop-color="#8B5CF6" />
+    </linearGradient>
+    <filter id="glowFemale" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#EC4899" flood-opacity="0.4" />
+    </filter>
+  </defs>
+
+  <style>
+    @keyframes floatFemale {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-3.5px) rotate(0.8deg); }
+    }
+    @keyframes blinkFemale {
+      0%, 90%, 100% { transform: scaleY(1); }
+      95% { transform: scaleY(0.1); }
+    }
+    @keyframes pulseRingFemale {
+      0%, 100% { opacity: 0.4; r: 76px; }
+      50% { opacity: 0.8; r: 78px; }
+    }
+    @keyframes blushPulse {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 0.85; }
+    }
+    .female-group {
+      animation: floatFemale 3.5s ease-in-out infinite;
+      transform-origin: 80px 90px;
+    }
+    .eye-female {
+      animation: blinkFemale 4.2s ease-in-out infinite;
+      transform-origin: 80px 78px;
+    }
+    .pulse-ring-female {
+      animation: pulseRingFemale 3.2s ease-in-out infinite;
+      transform-origin: 80px 80px;
+    }
+    .blush {
+      animation: blushPulse 3s ease-in-out infinite;
+    }
+  </style>
+
+  <!-- Background Base Circle -->
+  <circle cx="80" cy="80" r="76" fill="url(#bgGradFemale)" />
+  <circle class="pulse-ring-female" cx="80" cy="80" r="76" fill="none" stroke="#EC4899" stroke-width="2" stroke-dasharray="8 6" opacity="0.5" />
+
+  <!-- Animated Female Group -->
+  <g class="female-group">
+    <!-- Long Hair Back Drop -->
+    <path d="M 40 70 C 35 110, 42 145, 48 155 L 112 155 C 118 145, 125 110, 120 70 Z" fill="url(#hairGradFemale)" />
+
+    <!-- Trendy Top / Shoulders -->
+    <path d="M 36 155 C 40 125, 54 114, 80 114 C 106 114, 120 125, 124 155 Z" fill="url(#topGradFemale)" />
+
+    <!-- Chic Necklace -->
+    <path d="M 66 117 Q 80 128 94 117" stroke="#FDE047" stroke-width="2" stroke-linecap="round" fill="none" />
+    <circle cx="80" cy="123" r="2.5" fill="#FDE047" />
+
+    <!-- Slender Neck -->
+    <rect x="73" y="94" width="14" height="22" rx="6" fill="#F7C9A9" />
+
+    <!-- Face Oval -->
+    <ellipse cx="80" cy="78" rx="27" ry="32" fill="url(#skinGradFemale)" />
+
+    <!-- Ears & Cute Gold Earrings -->
+    <circle cx="53" cy="78" r="6" fill="#F7C9A9" />
+    <circle cx="107" cy="78" r="6" fill="#F7C9A9" />
+    <circle cx="52" cy="83" r="3.2" fill="#FDE047" filter="url(#glowFemale)" />
+    <circle cx="108" cy="83" r="3.2" fill="#FDE047" filter="url(#glowFemale)" />
+
+    <!-- Front Chic Hairstyle (Curtain Bangs) -->
+    <path d="M 50 68 C 48 42, 60 32, 80 32 C 100 32, 112 42, 110 68 C 102 52, 92 56, 80 58 C 68 56, 58 52, 50 68 Z" fill="url(#hairGradFemale)" />
+    <!-- Hair Side Strands -->
+    <path d="M 50 66 C 46 82, 48 102, 54 116 C 56 100, 56 80, 58 70 Z" fill="#6B21A8" />
+    <path d="M 110 66 C 114 82, 112 102, 106 116 C 104 100, 104 80, 102 70 Z" fill="#6B21A8" />
+
+    <!-- Eyebrows (Arched & Soft) -->
+    <path d="M 64 68 Q 71 65 76 69" stroke="#3730A3" stroke-width="2.2" stroke-linecap="round" fill="none" />
+    <path d="M 84 69 Q 89 65 96 68" stroke="#3730A3" stroke-width="2.2" stroke-linecap="round" fill="none" />
+
+    <!-- Eyes (Animated Blink with Eyelashes) -->
+    <g class="eye-female">
+      <ellipse cx="70" cy="76" rx="4.2" ry="4.8" fill="#1E1B4B" />
+      <circle cx="68.5" cy="74.5" r="1.6" fill="#FFFFFF" />
+      <path d="M 64 72 Q 70 69 76 72" stroke="#1E1B4B" stroke-width="2" stroke-linecap="round" fill="none" />
+
+      <ellipse cx="90" cy="76" rx="4.2" ry="4.8" fill="#1E1B4B" />
+      <circle cx="88.5" cy="74.5" r="1.6" fill="#FFFFFF" />
+      <path d="M 84 72 Q 90 69 96 72" stroke="#1E1B4B" stroke-width="2" stroke-linecap="round" fill="none" />
+    </g>
+
+    <!-- Cheerful Blushes -->
+    <ellipse class="blush" cx="63" cy="83" rx="5" ry="3" fill="#FDA4AF" opacity="0.65" />
+    <ellipse class="blush" cx="97" cy="83" rx="5" ry="3" fill="#FDA4AF" opacity="0.65" />
+
+    <!-- Petite Nose -->
+    <path d="M 80 78 L 79 83 L 81 83" stroke="#EA580C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.5" />
+
+    <!-- Cheerful Pink Lips -->
+    <path d="M 74 89 Q 80 96 86 89" stroke="#BE185D" stroke-width="2.4" stroke-linecap="round" fill="none" />
+    <ellipse cx="80" cy="91" rx="3.5" ry="1.2" fill="#F43F5E" opacity="0.7" />
+  </g>
+</svg>
