@@ -56,9 +56,19 @@
 ### Banjii (Main Web App)
 - **`src/types/constants.js`:** เพิ่ม Preset บัญชี `cash` ใน `BANK_PRESETS`
 - **`src/components/BankCardGraphic.jsx`:** เพิ่มคอมโพเนนต์หน้าการ์ดเงินสดภาษาอังกฤษ (Cash Wallet Card Face) พร้อมสัญลักษณ์ Banknote และ badge `THB • CASH`
+- **`src/lib/storage.js`:** ลบ `cash` ออกจากตัวตรวจจับ `hasOldAccounts` เพื่อไม่ให้ระบบมองว่า Cash เป็นบัญชีเก่าที่ต้องถูกลบ/รีเซ็ต
 
 ### Banjii-agent (AI Agent App)
 - **`src/types/constants.js`:** เพิ่ม `cash` ใน `STRICT_ACCOUNTS`
 - **`src/lib/agentTools.js`:** ขยาย enums ใน Tool declarations ให้รองรับบัญชี `cash`
 - **`src/lib/geminiClient.js`:** ปรับปรุง System Instruction ของ Gemini ให้ระบุ 4 บัญชี (`ktb`, `kbank`, `bbl`, `cash`)
 - **`src/lib/thaiNlpParser.js`:** ปรับ regex ให้แปลงคำว่า `เงินสด` / `cash` ไปยัง `cash` และหมวดหมู่ `family`
+
+---
+
+## 5. การแก้ไขปัญหา Supabase Offline (Issue Diagnosis & Resolution)
+- **สาเหตุ:** ใน `storage.js` ของระบบเว็บหลัก (Banjii) เดิมมีโค้ดตรวจสอบ `hasOldAccounts = accounts.some(a => a.id === 'cash')` ซึ่งเป็นโค้ดเก่าที่ระบุว่า cash เป็นบัญชีที่ถูกยกเลิก ส่งผลให้เมื่อหน้าเว็บเปิดขึ้นมาและพบบัญชี cash ระบบจะพยายาม reset บัญชีกลับไปเป็นค่าเริ่มต้นเดิม ทำให้กระบวนการ Initial Fetch สะดุดและขึ้นสถานะ Offline
+- **การแก้ไข:**
+  1. แก้ไขเงื่อนไขใน `storage.js` ให้นับว่า `cash` เป็นบัญชีที่ถูกต้องของระบบ
+  2. รัน Build และ Deploy ตัวเว็บหลักเวอร์ชันใหม่ขึ้น Netlify Production (`https://banjii-fintech.netlify.app`, Deploy ID: `6aafdecd70c94006acb067ae`) เรียบร้อยแล้ว
+  3. ตรวจสอบการเชื่อมต่อ Database โดยตรง: ทุกตารางเชื่อมต่อและส่งค่าปกติ 100%
