@@ -29,6 +29,16 @@ export const STRICT_ACCOUNTS = [
     cardImage: '/cards/kmutt-bbl-isolated.png',
     mask: '•••• 0000',
   },
+  {
+    id: 'cash',
+    name: 'Cash',
+    bank: 'Cash',
+    brand: 'Cash',
+    type: 'cash',
+    accentColor: '#10B981',
+    cardImage: '/cards/cash-card.png',
+    mask: '•••• CASH',
+  },
 ];
 
 export const ACCOUNT_MAP = STRICT_ACCOUNTS.reduce((acc, curr) => {

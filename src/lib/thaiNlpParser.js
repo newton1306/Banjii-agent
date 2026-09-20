@@ -13,6 +13,7 @@ export class ThaiNlpParser {
     if (lower.includes('kbank') || lower.includes('กสิกร')) return 'kbank';
     if (lower.includes('ktb') || lower.includes('กรุงไทย')) return 'ktb';
     if (lower.includes('bbl') || lower.includes('กรุงเทพ') || lower.includes('kmutt')) return 'bbl';
+    if (lower.includes('cash') || lower.includes('เงินสด')) return 'cash';
     return null;
   }
 
@@ -24,6 +25,7 @@ export class ThaiNlpParser {
     if (lower.includes('ช้อป') || lower.includes('ซื้อ') || lower.includes('เสื้อ') || lower.includes('ของ')) return 'shopping';
     if (lower.includes('หนัง') || lower.includes('เกม') || lower.includes('คอนเสิร์ต')) return 'entertainment';
     if (lower.includes('บิล') || lower.includes('ค่าน้ำ') || lower.includes('ค่าไฟ') || lower.includes('เน็ต') || lower.includes('ค่าห้อง')) return 'bills';
+    if (lower.includes('ครอบครัว') || lower.includes('พ่อ') || lower.includes('แม่') || lower.includes('ย่า') || lower.includes('ยาย') || lower.includes('family')) return 'family';
     if (lower.includes('เงินเดือน') || lower.includes('จ้าง') || lower.includes('รับเงิน')) return 'salary';
     return 'food';
   }

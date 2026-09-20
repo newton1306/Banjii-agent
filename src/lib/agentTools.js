@@ -15,10 +15,10 @@ export const GEMINI_TOOLS_DECLARATION = [
         title: { type: 'STRING', description: 'ชื่อรายการธุรกรรม เช่น กินข้าวแกงกะหรี่, ซื้อกาแฟ, เติมน้ำมัน' },
         amount: { type: 'NUMBER', description: 'จำนวนเงินเต็มของรายการ (บาท)' },
         type: { type: 'STRING', enum: ['expense', 'income'], description: 'ประเภทธุรกรรม: expense (รายจ่าย) หรือ income (รายรับ)' },
-        account_id: { type: 'STRING', enum: ['ktb', 'kbank', 'bbl'], description: 'รหัสบัญชีธนาคารที่ใช้จ่ายหรือรับเงิน (ktb, kbank, bbl) หากไม่ระบุให้เป็น kbank' },
+        account_id: { type: 'STRING', enum: ['ktb', 'kbank', 'bbl', 'cash'], description: 'รหัสบัญชีธนาคารที่ใช้จ่ายหรือรับเงิน (ktb, kbank, bbl, cash) หากไม่ระบุให้เป็น kbank' },
         category: {
           type: 'STRING',
-          enum: ['food', 'transport', 'shopping', 'entertainment', 'sport_mtzirr10', 'bills', 'salary', 'work', 'other'],
+          enum: ['food', 'transport', 'shopping', 'entertainment', 'sport_mtzirr10', 'bills', 'salary', 'work', 'family', 'other'],
           description: 'หมวดหมู่ของรายการ'
         },
         date: { type: 'STRING', description: 'วันที่ทำรายการ รูปแบบ YYYY-MM-DD (พ.ศ.ปัจจุบัน ตามเวลาประเทศไทย GMT+7)' },
@@ -36,7 +36,7 @@ export const GEMINI_TOOLS_DECLARATION = [
       properties: {
         title: { type: 'STRING', description: 'ชื่อบิลหาร เช่น ค่าคอร์ทแบด, ชาบูมื้อเย็น' },
         total_amount: { type: 'NUMBER', description: 'ยอดรวมทั้งบิล (บาท)' },
-        account_id: { type: 'STRING', enum: ['ktb', 'kbank', 'bbl'], description: 'บัญชีธนาคารที่เราจ่ายสำรองไปก่อน (ktb, kbank, bbl)' },
+        account_id: { type: 'STRING', enum: ['ktb', 'kbank', 'bbl', 'cash'], description: 'บัญชีธนาคารที่เราจ่ายสำรองไปก่อน (ktb, kbank, bbl, cash)' },
         date: { type: 'STRING', description: 'วันที่ทำรายการ YYYY-MM-DD' },
         my_share: { type: 'NUMBER', description: 'ยอดส่วนของผู้ใช้เองที่ต้องรับผิดชอบ (บาท) เช่น 70' },
         members: {
@@ -58,12 +58,12 @@ export const GEMINI_TOOLS_DECLARATION = [
   },
   {
     name: 'record_transfer',
-    description: 'บันทึกคู่ธุรกรรมโอนเงินข้ามบัญชีระหว่าง 3 บัญชีของเราเอง (ktb, kbank, bbl) ลงในตาราง transactions',
+    description: 'บันทึกคู่ธุรกรรมโอนเงินข้ามบัญชีระหว่าง 4 บัญชีของเราเอง (ktb, kbank, bbl, cash) ลงในตาราง transactions',
     parameters: {
       type: 'OBJECT',
       properties: {
-        source_account: { type: 'STRING', enum: ['ktb', 'kbank', 'bbl'], description: 'บัญชีธนาคารต้นทางที่โอนออก' },
-        dest_account: { type: 'STRING', enum: ['ktb', 'kbank', 'bbl'], description: 'บัญชีธนาคารปลายทางที่รับเงินเข้า' },
+        source_account: { type: 'STRING', enum: ['ktb', 'kbank', 'bbl', 'cash'], description: 'บัญชีธนาคารต้นทางที่โอนออก' },
+        dest_account: { type: 'STRING', enum: ['ktb', 'kbank', 'bbl', 'cash'], description: 'บัญชีธนาคารปลายทางที่รับเงินเข้า' },
         amount: { type: 'NUMBER', description: 'จำนวนเงินที่โอน (บาท)' },
         date: { type: 'STRING', description: 'วันที่โอน YYYY-MM-DD' }
       },
@@ -78,7 +78,7 @@ export const GEMINI_TOOLS_DECLARATION = [
       properties: {
         friend_name: { type: 'STRING', description: 'ชื่อเพื่อนที่โอนเงินคืน เช่น Non, Nine, Praew' },
         amount: { type: 'NUMBER', description: 'จำนวนเงินที่เพื่อนโอนคืน (บาท)' },
-        deposit_account: { type: 'STRING', enum: ['ktb', 'kbank', 'bbl'], description: 'บัญชีธนาคารของเราที่เพื่อนโอนเข้า (ปกติ kbank หรือ ktb)' },
+        deposit_account: { type: 'STRING', enum: ['ktb', 'kbank', 'bbl', 'cash'], description: 'บัญชีธนาคารของเราที่เพื่อนโอนเข้า (ปกติ kbank หรือ ktb)' },
         date: { type: 'STRING', description: 'วันที่โอนเงินคืน YYYY-MM-DD' }
       },
       required: ['friend_name', 'amount', 'deposit_account']
@@ -86,7 +86,7 @@ export const GEMINI_TOOLS_DECLARATION = [
   },
   {
     name: 'get_financial_summary',
-    description: 'ดูสรุปยอดเงินคงเหลือของบัญชีธนาคาร (ktb, kbank, bbl) และภาพรวมทรัพย์สิน',
+    description: 'ดูสรุปยอดเงินคงเหลือของบัญชีธนาคาร (ktb, kbank, bbl, cash) และภาพรวมทรัพย์สิน',
     parameters: {
       type: 'OBJECT',
       properties: {}
